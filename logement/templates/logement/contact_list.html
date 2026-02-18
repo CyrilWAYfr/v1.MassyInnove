@@ -125,7 +125,7 @@
     <tr>
         <!-- STATUT -->
         <th class="text-center">
-            <a href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&order={% if order == 'statut__id' %}-statut__id{% else %}statut__id{% endif %}">
+            <a href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&page={{ contacts.number }}&order={% if order == 'statut__id' %}-statut__id{% else %}statut__id{% endif %}">
                 Statut
             </a>
             {% if order == 'statut__id' %}
@@ -141,7 +141,7 @@
 
         <!-- CANAL -->
         <th class="text-center">
-            <a href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&order={% if order == 'canal__libelle' %}-canal__libelle{% else %}canal__libelle{% endif %}">
+            <a href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&page={{ contacts.number }}&order={% if order == 'canal__libelle' %}-canal__libelle{% else %}canal__libelle{% endif %}">
                 Canal
             </a>
             {% if order == 'canal__libelle' %}
@@ -155,7 +155,7 @@
 
         <!-- DATE -->
         <th class="text-center">
-            <a href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&order={% if order == 'date' %}-date{% else %}date{% endif %}">
+            <a href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&page={{ contacts.number }}&order={% if order == 'date' %}-date{% else %}date{% endif %}">
                 Date
             </a>
             {% if order == 'date' %}
@@ -169,7 +169,7 @@
 
         <!-- EMAIL DEMANDEUR -->
         <th>
-            <a href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&order={% if order == 'demandeur__email' %}-demandeur__email{% else %}demandeur__email{% endif %}">
+            <a href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&page={{ contacts.number }}&order={% if order == 'demandeur__email' %}-demandeur__email{% else %}demandeur__email{% endif %}">
                 Email demandeur
             </a>
             {% if order == 'demandeur__email' %}
@@ -183,7 +183,7 @@
 
         <!-- NUM UNIQUE -->
         <th>
-            <a href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&order={% if order == 'demandeur__num_unique' %}-demandeur__num_unique{% else %}demandeur__num_unique{% endif %}">
+            <a href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&page={{ contacts.number }}&order={% if order == 'demandeur__num_unique' %}-demandeur__num_unique{% else %}demandeur__num_unique{% endif %}">
                 Num unique
             </a>
             {% if order == 'demandeur__num_unique' %}
@@ -251,10 +251,39 @@
 
         </tr>
         {% empty %}
-        <tr><td colspan="7" class="text-center">Aucun contact trouvé.</td></tr>
+        <tr><td colspan="8" class="text-center">Aucun contact trouvé.</td></tr>
         {% endfor %}
     </tbody>
 </table>
+{% if contacts.paginator.num_pages > 1 %}
+<nav aria-label="Pagination contacts" class="d-flex justify-content-between align-items-center mb-3">
+    <div class="small text-muted">
+        Page {{ contacts.number }} / {{ contacts.paginator.num_pages }}
+    </div>
+    <div class="btn-group">
+        {% if contacts.has_previous %}
+            <a class="btn btn-sm btn-outline-secondary"
+               href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&order={{ order }}&page=1">
+                &laquo; Premi&egrave;re
+            </a>
+            <a class="btn btn-sm btn-outline-secondary"
+               href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&order={{ order }}&page={{ contacts.previous_page_number }}">
+                Pr&eacute;c&eacute;dente
+            </a>
+        {% endif %}
+        {% if contacts.has_next %}
+            <a class="btn btn-sm btn-outline-secondary"
+               href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&order={{ order }}&page={{ contacts.next_page_number }}">
+                Suivante
+            </a>
+            <a class="btn btn-sm btn-outline-secondary"
+               href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&order={{ order }}&page={{ contacts.paginator.num_pages }}">
+                Derni&egrave;re &raquo;
+            </a>
+        {% endif %}
+    </div>
+</nav>
+{% endif %}
 
 <div class="mt-4">
         {% if return_url %}

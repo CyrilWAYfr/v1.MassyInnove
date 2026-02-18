@@ -6,3 +6,17 @@ CREATE USER 'massy'@'localhost' IDENTIFIED BY 'apC2509+12345679!';
 GRANT ALL PRIVILEGES ON massy_dev.* TO 'massy'@'localhost';
 FLUSH PRIVILEGES;
 
+# 1) Activer le venv
+.\.venv\Scripts\Activate.ps1
+
+# 2) (si besoin) installer les dépendances
+pip install -r requirements.txt
+
+# 3) Appliquer les migrations
+python manage.py migrate
+
+# 4) (optionnel) charger les données de démo
+python manage.py loaddata backup.json
+
+# 5) Lancer le serveur local
+python manage.py runserver 127.0.0.1:8000

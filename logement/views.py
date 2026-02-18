@@ -197,6 +197,7 @@ from .security import get_contacts_for_user
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import render
+from django.core.paginator import Paginator, EmptyPage
 
 from .models import StatutContact
 
@@ -236,6 +237,12 @@ def contact_list(request):
         order = "-date"
 
     contacts = contacts.order_by(order)
+    paginator = Paginator(contacts, 25)
+    page_number = request.GET.get("page", 1)
+    try:
+        contacts = paginator.page(page_number)
+    except EmptyPage:
+        contacts = paginator.page(1)
 
     # --- Liste des statuts pour le dropdown
     statuts = StatutContact.objects.all().order_by("id")
