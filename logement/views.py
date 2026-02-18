@@ -888,6 +888,7 @@ def proposer_reponse(request, contact_id):
 # -----------------------------------------------
 
 from django.db.models import Count, Max
+from django.core.paginator import Paginator
 from django.shortcuts import render
 from .models import Demandeur
 from .security import get_contacts_for_user
@@ -902,6 +903,8 @@ def demandeurs_list(request):
 
     contacts = get_contacts_for_user(request.user)
     return_url = request.GET.get("return_url")
+    search_num_unique = request.GET.get("num_unique", "").strip()
+    search_email = request.GET.get("email", "").strip()
 
     # Aucun contact accessible → aucun demandeur visible
     if not contacts.exists():
@@ -915,16 +918,27 @@ def demandeurs_list(request):
                 nb_contacts=Count("contacts_entrants", distinct=True),
             )
             .distinct()
-            .order_by(
-                "-dernier_contact",
-                "email",
-                "telephone",
-            )
+        )
+        if search_num_unique:
+            demandeurs = demandeurs.filter(num_unique__icontains=search_num_unique)
+        if search_email:
+            demandeurs = demandeurs.filter(email__icontains=search_email)
+
+        demandeurs = demandeurs.order_by(
+            "-dernier_contact",
+            "email",
+            "telephone",
         )
 
+    paginator = Paginator(demandeurs, 25)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
     return render(request, "logement/demandeurs_list.html", {
-        "demandeurs": demandeurs,
+        "demandeurs": page_obj,
+        "page_obj": page_obj,
         "return_url": return_url,
+        "search_num_unique": search_num_unique,
+        "search_email": search_email,
     })
 
 
