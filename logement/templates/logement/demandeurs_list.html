@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Liste des demandeurs</h1>
+
+<table class="table table-striped table-bordered">
+    <thead>
+        <tr>
+            <th>Numéro unique</th>
+            <th>Email</th>
+            <th>Téléphone</th>
+            <th>Dernier contact entrant</th>
+            <th>Nb contacts</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for d in demandeurs %}
+        <tr>
+            <td>{{ d.num_unique|default:"—" }}</td>
+            <td>{{ d.email|default:"—" }}</td>
+            <td>{{ d.telephone|default:"—" }}</td>
+
+            <td>
+                {% if d.dernier_contact %}
+                    {{ d.dernier_contact|date:"d/m/Y H:i" }}
+                {% else %}
+                    <span class="text-muted">—</span>
+                {% endif %}
+            </td>
+
+            <td>{{ d.nb_contacts }}</td>
+            
+            <td class="d-flex gap-1">
+
+    <a href="{% url 'logement:demandeur_detail' d.id %}?return_url={{ request.get_full_path|urlencode }}"
+       class="btn btn-primary btn-sm">
+        Détails
+    </a>
+
+    <a href="{% url 'logement:demandeur_edit' d.id %}?return_url={{ request.get_full_path|urlencode }}"
+       class="btn btn-sm btn-outline-primary">
+        Modifier
+    </a>
+
+
+    <form method="post"
+          action="{% url 'logement:demandeur_delete' demandeur_id=d.id %}"
+          onsubmit="return confirm('Confirmer la suppression de ce demandeur ?');"
+          class="d-inline">
+
+        {% csrf_token %}
+        <input type="hidden" name="return_url"
+               value="{{ request.get_full_path }}">
+        <button type="submit" class="btn btn-sm btn-outline-danger">
+            Supprimer
+        </button>
+    </form>
+
+</td>
+
+            
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="mt-4">
+    {% if return_url %}
+    <a href="{{ return_url }}" class="btn btn-secondary">
+        ← Retour à l’accueil
+    </a>
+{% else %}
+    <a href="{% url 'home' %}" class="btn btn-secondary">
+        ← Retour à l’accueil
+    </a>
+{% endif %}
+
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Supprimer le demandeur</h2>
+
+<p>Voulez-vous vraiment supprimer le demandeur :
+    <strong>{{ demandeur }}</strong> ?
+</p>
+
+<form method="post">
+    {% csrf_token %}
+    <button class="btn btn-danger">Supprimer</button>
+    <a href="{% url 'logement:demandeurs_list' %}" class="btn btn-secondary">Annuler</a>
+</form>
+{% endblock %}

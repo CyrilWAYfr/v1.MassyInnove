@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Gestion des Groupes</h1>
+
+<a href="{% url 'logement:groupe_create' %}" class="btn btn-primary mb-3">
+    Ajouter un groupe
+</a>
+
+<form method="get" class="mb-3">
+    <label for="f_domaine"><strong>Filtrer par domaine :</strong></label>
+    <select name="domaine" id="f_domaine" class="form-select d-inline-block" style="width:250px;"
+            onchange="this.form.submit()">
+        <option value="">— Tous les domaines —</option>
+
+        {% for d in domaines %}
+            <option value="{{ d.id }}" {% if selected_domaine == d.id|stringformat:"s" %}selected{% endif %}>
+                {{ d.libelle }}
+            </option>
+        {% endfor %}
+    </select>
+</form>
+
+
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Domaine</th>
+            <th>Groupe</th>
+            <th>Ordre</th>
+            <th style="width: 150px;"></th>
+        </tr>
+    </thead>
+
+    <tbody>
+    {% for g in groupes %}
+        <tr>
+            <td>{{ g.domaine.libelle }}</td>
+            <td>{{ g.libelle }}</td>
+            <td>{{ g.ordre }}</td>
+            <td>
+                <a href="{% url 'logement:groupe_edit' g.id %}" class="btn btn-sm btn-secondary">Modifier</a>
+                <a href="{% url 'logement:groupe_delete' g.id %}" class="btn btn-sm btn-danger">Supprimer</a>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="4">Aucun groupe défini.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<div class="mt-4">
+    <a href="{% url 'logement:dashboard' %}" class="btn btn-secondary">
+        ← Retour à l'accueil Logement
+    </a>
+</div>
+
+{% endblock %}

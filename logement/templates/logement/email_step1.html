@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% load static %}
+{% load form_tags %}
+
+{% block extra_head %}
+<style>
+    .card-box {
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 15px;
+        background: #fafafa;
+    }
+    .small-text { font-size: 0.9rem; }
+    .form-label { font-weight: 600; }
+
+    .canal-select { width: 200px; }
+    .email-input { width: 260px; }
+
+    .status-new { background-color: #e9ecef !important; font-weight: 600; }
+    .status-ia  { background-color: #cfe2ff !important; font-weight: 600; }
+    .status-mail{ background-color: #d1e7dd !important; font-weight: 600; }
+
+    #contacts-history table td,
+    #contacts-history table th {
+        vertical-align: middle !important;
+    }
+    #contacts-history table {
+        font-size: 0.85rem;
+    }
+    
+    /* Base commune DUPLIQUE DANS CONTACT_LIST.HTML DONC Y REPERCUTER AUSSI LES EVENTUELLES MODIFS*/
+    .badge-domaine {
+        font-weight: 500;
+        font-size: 0.75rem;
+        padding: 0.35em 0.55em;
+        /* fallback de couleur si aucune variante n’existe */
+        background-color: #f1f3f5;
+        color: #495057;
+    }
+
+    /* Variantes par domaine (discrètes) */
+    .badge-domaine-1 {
+        background-color: #e7f1ff;
+        color: #0d6efd;
+    }
+
+    .badge-domaine-2 {
+        background-color: #eaf7f0;
+        color: #198754;
+    }
+
+    .badge-domaine-3 {
+        background-color: #fdf2e9;
+        color: #fd7e14;
+    }
+
+    .badge-domaine-4 {
+        background-color: #f2f2f2;
+        color: #6c757d;
+    }
+
+
+    
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h2 class="mb-4">Nouveau contact entrant</h2>
+
+<form method="post"
+      action="{% if return_url %}
+                  {% url 'logement:email_create_step1' domaine_id=domaine_id %}?return_url={{ return_url|urlencode }}
+              {% else %}
+                  {% url 'logement:email_create_step1' domaine_id=domaine_id %}
+              {% endif %}"
+      class="small-text">
+
+
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <div class="card-box mb-3">
+        <h5>Informations du contact entrant</h5>
+
+        <div class="d-flex align-items-center mb-4" style="gap: 40px;">
+
+            <!-- STATUT -->
+            <div class="d-flex align-items-center" style="margin-right: 20px;">
+                <label for="{{ form.statut.id_for_label }}"
+                       class="form-label mb-0"
+                       style="margin-right: 6px;">
+                    Statut :
+                </label>
+                {{ form.statut }}
+            </div>
+
+            <!-- DATE -->
+            <div class="d-flex align-items-center" style="margin-right: 20px;">
+                <label for="{{ form.date.id_for_label }}"
+                       class="form-label mb-0"
+                       style="margin-right: 6px;">
+                    Date :
+                </label>
+
+                <button type="button" id="btn-date-minus" class="btn btn-outline-secondary btn-sm">-</button>
+
+                {{ form.date|add_class:"form-control" }}
+
+                <button type="button" id="btn-date-plus" class="btn btn-outline-secondary btn-sm">+</button>
+            </div>
+
+            <!-- CANAL -->
+            <div class="d-flex align-items-center" style="margin-right: 20px;">
+                <label for="id_canal" class="form-label mb-0" style="margin-right: 6px;">
+                    Canal&nbsp;:
+                </label>
+
+                {{ form.canal }}
+            </div>
+
+            <!-- EMAIL -->
+            <div class="d-flex align-items-center">
+                <label for="{{ form.email.id_for_label }}"
+                       class="form-label mb-0"
+                       style="margin-right: 6px;">
+                    Email expéditeur :
+                </label>
+                <div>
+                    {{ form.email|add_class:"form-control email-input" }}
+                    {% if form.email.errors %}
+                        <div class="invalid-feedback" style="display:block;">
+                            {{ form.email.errors|striptags }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Historique -->
+        <div id="contacts-history" class="mt-3">
+            {% include "logement/_contacts_history.html" with contacts=history %}
+        </div>
+
+        <!-- Objet -->
+        <div class="d-flex align-items-start mb-3" style="gap: 20px;">
+            <label for="{{ form.objet.id_for_label }}"
+                   class="form-label mb-0"
+                   style="white-space: nowrap; padding-top: 6px;">
+                Objet :
+            </label>
+            <div style="flex-grow: 1;">
+                {{ form.objet }}
+            </div>
+        </div>
+
+        <!-- Message -->
+        <div class="mb-3">
+            <label for="{{ form.texte.id_for_label }}" class="form-label">Message :</label>
+            {{ form.texte }}
+        </div>
+
+    </div>
+
+    <button type="submit" class="btn btn-success">Continuer</button>
+    <button type="button" class="btn btn-secondary btn-sm" onclick="history.back()">
+        Retour
+    </button>
+</form>
+
+<!-- Modal texte complet -->
+<div class="modal fade" id="fullTextModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Message complet</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="modal-full-text" style="white-space:pre-wrap;"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // --- DATE +/- ---
+    const dateInput = document.getElementById("id_date");
+    const minusBtn  = document.getElementById("btn-date-minus");
+    const plusBtn   = document.getElementById("btn-date-plus");
+
+    function adjustDate(delta) {
+        if (!dateInput) return;
+        const current = dateInput.value ? new Date(dateInput.value) : new Date();
+        current.setDate(current.getDate() + delta);
+        dateInput.value = current.toISOString().slice(0, 10);
+    }
+
+    if (minusBtn) minusBtn.addEventListener("click", () => adjustDate(-1));
+    if (plusBtn)  plusBtn.addEventListener("click", () => adjustDate(+1));
+
+    // --- EMAIL -> HISTORIQUE (AJAX) ---
+    const emailField       = document.getElementById("id_email");
+    const historyContainer = document.getElementById("contacts-history");
+    let lastEmail          = null;  // valeur précédente connue
+
+    async function refreshHistory() {
+        if (!emailField || !historyContainer) return;
+
+        const raw   = emailField.value.trim();
+        const email = raw.toLowerCase();
+
+        // Si champ vide -> on efface l'historique et on ne fait PAS d'appel AJAX
+        if (email === "") {
+            historyContainer.innerHTML = "";
+            lastEmail = "";
+            return;
+        }
+
+        // Si l'email n'a pas changé depuis le dernier appel, on ne refait rien
+        if (email === lastEmail) {
+            return;
+        }
+
+        lastEmail = email;
+
+        try {
+            const resp = await fetch(
+                "{% url 'logement:check_demandeur' %}?email=" + encodeURIComponent(email)
+            );
+            const data = await resp.json();
+            historyContainer.innerHTML = data.html || "";
+        } catch (e) {
+            console.error("Erreur lors du chargement de l'historique :", e);
+        }
+    }
+
+    if (emailField) {
+        // Quand on quitte le champ -> on rafraîchit
+        emailField.addEventListener("blur", refreshHistory);
+
+        // Quand la valeur change (par exemple via copier/coller)
+        emailField.addEventListener("change", refreshHistory);
+
+        // Quand on tape / efface : si le champ devient vide, on nettoie l'historique
+        emailField.addEventListener("input", function () {
+            const raw = emailField.value.trim();
+            if (raw === "") {
+                historyContainer.innerHTML = "";
+                lastEmail = "";
+            }
+        });
+    }
+
+// --- MODALE "MESSAGE COMPLET" ---
+function showFullText(txt) {
+    const modalBody = document.getElementById("modal-full-text");
+    if (!modalBody) return;
+    modalBody.textContent = txt;
+    const modal = new bootstrap.Modal(document.getElementById("fullTextModal"));
+    modal.show();
+}
+
+document.addEventListener("click", function (e) {
+    if (e.target.classList && e.target.classList.contains("see-full")) {
+        e.preventDefault();
+
+        const raw = e.target.dataset.full || "";
+
+        // 🔥 Décodage propre via JSON.parse
+        const txt = JSON.parse('"' + raw + '"');
+
+        showFullText(txt);
+    }
+});
+
+});
+</script>
+{% endblock %}
+

@@ -1,0 +1,55 @@
+{% load static %}
+
+{% if contacts == "initial" %}
+    {# état initial : ne rien afficher du tout #}
+
+{% elif contacts is None %}
+    <div class="alert alert-warning mt-2">
+        Nouveau demandeur (aucun enregistrement existant).
+    </div>
+
+{% elif contacts|length == 0 %}
+    <div class="alert alert-info mt-2">
+        Aucun contact existant pour ce demandeur.
+    </div>
+
+{% else %}
+    <h6 class="mt-3 mb-2"><strong>Contacts passés :</strong></h6>
+
+    <table class="table table-sm table-bordered mt-2">
+        <thead class="table-light">
+            <tr>
+                <th class="text-center">Statut</th>
+                <th class="text-center">Domaine</th>
+                <th class="text-center">Canal</th>
+                <th class="text-center">Date</th>
+                <th>Objet</th>
+                <th>Message</th>
+                <th>Thématiques</th>
+                <th class="text-center">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in contacts %}
+                {% with txt=c.txtdemande %}
+                    {% if txt|length > 60 %}
+                        {% with short=txt|slice:":60" truncated=True %}
+                            {% include "logement/_contacts_history_row.html" %}
+                        {% endwith %}
+                    {% else %}
+                        {% with short=txt truncated=False %}
+                            {% include "logement/_contacts_history_row.html" %}
+                        {% endwith %}
+                    {% endif %}
+                {% endwith %}
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="my-4" style="border-top: 2px solid #e0e0e0;"></div>
+
+<!-- Titre discret mais clair -->
+<div class="mb-3" style="font-size: 0.95rem; font-weight: 600; color: #555;">
+    Nouveau contact entrant
+</div>
+    
+{% endif %}

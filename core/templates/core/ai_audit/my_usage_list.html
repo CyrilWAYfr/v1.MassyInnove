@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Mes logs IA</h1>
+
+<form method="get" class="mb-4">
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <input type="text" name="q" placeholder="Rechercher (modèle/app)"
+           value="{{ params.q|default_if_none:'' }}" />
+    <select name="source_app">
+      <option value="">Toutes apps</option>
+      {% for a in available_apps %}
+        <option value="{{ a }}" {% if params.source_app == a %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+    <select name="model">
+      <option value="">Tous modèles</option>
+      {% for m in available_models %}
+        <option value="{{ m }}" {% if params.model == m %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
+    <select name="status">
+      <option value="">Tous statuts</option>
+      {% for value,label in status_choices %}
+        <option value="{{ value }}" {% if params.status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <input type="date" name="date_from" value="{{ params.date_from|default_if_none:'' }}">
+    <input type="date" name="date_to" value="{{ params.date_to|default_if_none:'' }}">
+
+    <button type="submit">Filtrer</button>
+    <a href="{% url 'ai_audit:my_usage' %}">Réinitialiser</a>
+    <a href="{% url 'ai_audit:my_usage_export' %}{% if query_without_page %}?{{ query_without_page }}{% endif %}">Exporter CSV</a>
+  </div>
+</form>
+
+<div class="table-responsive">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>App</th>
+        <th>Modèle</th>
+        <th>Tokens (in/out/total)</th>
+        <th>€</th>
+        <th>CO₂ (g)</th>
+        <th>Statut</th>
+        <th>Latence (ms)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.timestamp|date:"Y-m-d H:i:s" }}</td>
+        <td>{{ r.source_app }}</td>
+        <td>{{ r.model }}</td>
+        <td>{{ r.tokens_input }} / {{ r.tokens_output }} / {{ r.tokens_total }}</td>
+        <td>{{ r.cost_eur }}</td>
+        <td>{{ r.co2_grams }}</td>
+        <td>{{ r.get_status_display }}</td>
+        <td>{{ r.latency_ms }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8">Aucune donnée.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if is_paginated %}
+<nav class="pagination">
+  {% with qp=query_without_page %}
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if qp %}&{{ qp }}{% endif %}">← Précédent</a>
+    {% endif %}
+    <span>Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if qp %}&{{ qp }}{% endif %}">Suivant →</a>
+    {% endif %}
+  {% endwith %}
+</nav>
+{% endif %}
+
+{% endblock %}

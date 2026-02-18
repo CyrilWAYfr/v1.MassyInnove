@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+  <div class="container my-4">
+    <h1>Vérifiez votre boîte mail ✉️</h1>
+    <p>
+      Merci ! Nous venons d’envoyer un e-mail de confirmation à l’adresse fournie.</p>
+      <p><strong>ATTENTION : DANS NOTRE OUTLOOK MAIRIE, CE MAIL ARRIVERA DANS VOTRE DOSSIER SPAM !</strong>
+    </p>
+    <ul>
+      <li>Dans Outlook, sous "Boîte de réception", allez dans le dossier "Courrier Indésirable".</li>
+      <li>Cherchez un message ayant pour objet « Confirmez votre adresse e-mail ».</li>
+    </ul>
+
+<div class="alert alert-info small mt-3">
+        <strong>Pour corriger définitivement ce problème :</strong><br>
+        Quand vous êtes sur votre boîte aux lettres Outlook :
+        faites un clic-droit sur n'importe quel mail, cliquez sur le menu "Courrier indésirable / Options du courrier indésirable", allez dans l'onglet "Expéditeurs approuvés" et ajoutez "massy@massy-innove.fr" dans la liste des expéditeurs approuvés.
+
+      </div>
+
+    <p class="mt-3">
+      Vous n’avez rien reçu après quelques minutes ?
+      <a href="{% url 'account_signup' %}">Recommencez l’inscription</a> ou
+      <a href="{% url 'account_login' %}">retournez à la connexion</a>.
+    </p>
+  </div>
+{% endblock %}

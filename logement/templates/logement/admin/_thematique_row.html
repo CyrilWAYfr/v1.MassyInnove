@@ -1,0 +1,27 @@
+<tr>
+    <td>
+        <span style="padding-left: {{ depth }}px;">
+            {% if depth > 0 %}⤷ {% endif %}
+            {{ node.obj.libelle_thematique }}
+        </span>
+    </td>
+
+    <td>{{ node.obj.ordre }}</td>
+
+    <td>
+        <a href="{% url 'logement:thematique_edit' node.obj.id %}" class="btn btn-sm btn-secondary">
+            Modifier
+        </a>
+        <a href="{% url 'logement:thematique_delete' node.obj.id %}" class="btn btn-sm btn-danger">
+            Supprimer
+        </a>
+        <a href="{% url 'logement:thematique_create' %}?parent={{ node.obj.id }}"
+           class="btn btn-sm btn-primary">
+            + Sous-thématique
+        </a>
+    </td>
+</tr>
+
+{% for child in node.children %}
+    {% include "logement/_thematique_row.html" with node=child depth=depth|add:"20" %}
+{% endfor %}

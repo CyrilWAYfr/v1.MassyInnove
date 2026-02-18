@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Modifier le demandeur</h2>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    {% if return_url %}
+        <input type="hidden" name="return_url" value="{{ return_url }}">
+    {% endif %}
+
+    <button class="btn btn-primary">Enregistrer</button>
+
+    {% if return_url %}
+        <a href="{{ return_url }}" class="btn btn-secondary">Annuler</a>
+    {% else %}
+        <a href="{% url 'home' %}" class="btn btn-secondary">Annuler</a>
+    {% endif %}
+</form>
+{% endblock %}

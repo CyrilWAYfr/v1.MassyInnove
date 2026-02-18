@@ -1,0 +1,69 @@
+{# ChatBotEngine/templates/ChatBotEngine/admin_mistral_docs.html #}
+{% extends "base.html" %}
+
+{% block title %}Admin — Documents Mistral{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h1 class="mb-3">Documents Mistral (agrégés par librairies)</h1>
+  <p class="text-muted">
+    Cette page liste tous les documents vus via les librairies Mistral et indique
+    le nombre de références : <strong>agents</strong> (librairies dont le nom commence par <code>agent-</code>) et <strong>users</strong> (autres).
+  </p>
+
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <div>Nombre total de documents : <span class="badge text-bg-primary">{{ total_docs }}</span></div>
+    <div class="small text-muted">Tri: {{ sort }}</div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Document</th>
+          <th class="text-nowrap">Status</th>
+          <th class="text-nowrap">Taille</th>
+          <th class="text-nowrap">Créé le</th>
+          <th class="text-nowrap">Refs agents</th>
+          <th class="text-nowrap">Refs users</th>
+          <th class="text-nowrap">Refs total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in docs %}
+        <tr>
+          <td class="text-break">
+            <div class="fw-semibold">{% firstof d.filename d.id %}</div>
+            <div class="small text-muted"><code>{{ d.id }}</code></div>
+          </td>
+          <td>
+            {% if d.status %}
+              <span class="badge text-bg-secondary">{{ d.status }}</span>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td class="text-nowrap">
+            {% if d.size %}{{ d.size|filesizeformat }}{% else %}—{% endif %}
+          </td>
+          <td class="text-nowrap">
+            {% if d.created_at %}{{ d.created_at }}{% else %}—{% endif %}
+          </td>
+          <td><span class="badge text-bg-info text-dark">{{ d.ref_agents }}</span></td>
+          <td><span class="badge text-bg-warning text-dark">{{ d.ref_users }}</span></td>
+          <td><span class="badge text-bg-warning text-dark">{{ d.ref_total }}</span></td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7"><em>Aucun document trouvé.</em></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <p class="small text-muted">
+    Astuce : utilise <code>?sort=-ref_total</code>, <code>?sort=ref_agents</code>, <code>?sort=ref_users</code>, etc.
+  </p>
+</div>
+{% endblock %}

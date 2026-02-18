@@ -1,0 +1,25 @@
+{# --- Cas : un groupe (niveau intermédiaire, pas de checkbox) --- #}
+{% if node.type == "groupe" %}
+<tr class="table-secondary">
+    <td colspan="2">
+        <strong>{{ node.groupe.libelle }}</strong>
+    </td>
+</tr>
+
+{# --- Affichage des thématiques du groupe --- #}
+{% for th in node.thematiques %}
+<tr>
+    <td style="padding-left: {{ depth }}px;">
+        <input type="checkbox"
+               name="thematiques"
+               value="{{ th.id }}"
+               {% if th.id in selected_ids %}checked{% endif %}>
+    </td>
+
+    <td>
+        {{ th.libelle_thematique }}
+    </td>
+</tr>
+{% endfor %}
+
+{% endif %}

@@ -1,0 +1,45 @@
+<tr>
+    <td class="text-center
+        {% if c.statut.id == 1 %}status-new{% endif %}
+        {% if c.statut.id == 2 %}status-ia{% endif %}
+        {% if c.statut.id == 3 %}status-mail{% endif %}
+    ">
+        {{ c.statut.libelle }}
+    </td>
+    <td class="text-center">
+        <span class="badge badge-domaine badge-domaine-{{ c.domaine.id }}">
+            {{ c.domaine.libelle }}
+        </span>
+
+    </td>
+
+    <td class="text-center">{{ c.canal.libelle }}</td>
+    <td class="text-center">{{ c.date|date:"d/m/Y" }}</td>
+    <td>{{ c.objet }}</td>
+    <td>
+        {% if truncated %}
+            {{ short }}
+            <a href="#" class="see-full"
+               data-full="{{ txt|escapejs }}">
+                etc.
+            </a>
+
+
+
+        {% else %}
+            {{ short }}
+        {% endif %}
+    </td>
+    <td>
+        {% if c.thematiques.all %}
+            {{ c.thematiques.all|join:", " }}
+        {% endif %}
+    </td>
+    <td class="text-center">
+        <a href="/Logement/emails/{{ c.id }}/caracteriser/"
+           class="btn btn-sm btn-primary">
+            Ouvrir
+        </a>
+    </td>
+
+</tr>

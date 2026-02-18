@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Compte en attente de validation</h2>
+<p>Votre inscription est en cours de validation par un administrateur. Vous recevrez un email dès qu'elle sera approuvée.</p>
+<a href="{% url 'account_logout' %}">Se déconnecter</a>
+{% endblock %}

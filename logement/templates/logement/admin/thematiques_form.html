@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>
+    {% if thematique %}
+        Modifier la thématique : {{ thematique.libelle_thematique }}
+    {% else %}
+        Ajouter une nouvelle thématique
+    {% endif %}
+</h1>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Libellé -->
+    <div class="mb-3">
+        <label class="form-label">Libellé</label>
+        {{ form.libelle_thematique }}
+    </div>
+
+    {% if not single_groupe %}
+        <div class="mb-3">
+            <label class="form-label">Groupe</label>
+            {{ form.groupe }}
+        </div>
+    {% else %}
+        <div class="mb-3">
+            <label class="form-label">Groupe</label>
+            <input type="text"
+                   class="form-control"
+                   value="{{ form.groupe.value.instance.libelle }}"
+                   disabled>
+        </div>
+    {% endif %}
+
+
+    <!-- Ordre -->
+    <div class="mb-3" style="max-width: 120px;">
+        <label class="form-label">Ordre</label>
+        {{ form.ordre }}
+    </div>
+
+    <!-- Coché par défaut -->
+    <div class="mb-3 form-check">
+        {{ form.cocher_par_defaut }}
+        <label class="form-check-label">Cocher par défaut</label>
+    </div>
+
+
+    <!-- Réponse type -->
+    <div class="mb-3">
+        <label class="form-label">Réponse type</label>
+        <small class="text-muted d-block mb-1">
+            Vous pouvez utiliser du texte enrichi : retours à la ligne, gras (**texte**),
+            listes, etc.
+        </small>
+        {{ form.reponse_type }}
+    </div>
+
+    <button type="submit" class="btn btn-success">Enregistrer</button>
+    <a href="{% url 'logement:thematique_list' %}" class="btn btn-secondary">Annuler</a>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+
+<!-- SimpleMDE pour le champ réponse_type -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const textarea = document.getElementById("id_reponse_type");
+
+    if (textarea) {
+        new SimpleMDE({
+            element: textarea,
+            spellChecker: false,
+            status: false,
+            toolbar: [
+                "bold", "italic", "heading",
+                "|",
+                "unordered-list", "ordered-list",
+                "|",
+                "link",
+                "|",
+                "preview", "side-by-side", "fullscreen",
+            ],
+        });
+    }
+});
+</script>
+
+{% endblock %}

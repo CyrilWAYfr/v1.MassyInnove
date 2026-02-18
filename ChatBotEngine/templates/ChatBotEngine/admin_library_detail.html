@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Détails de la librairie Mistral{% endblock %}
+
+{% block page_title %}
+  <h1 class="main-title">Librairie Mistral — Détails</h1>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <div class="mb-4">
+    <a href="{% url 'chatbotengine:admin_list_libraries' %}" class="btn btn-sm btn-outline-secondary">
+      ← Retour à la liste des librairies
+    </a>
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-2">{{ name|default:"(Sans nom)" }}</h5>
+      <p class="card-text text-muted mb-3">{{ desc|default:"Aucune description." }}</p>
+
+      <dl class="row small">
+        <dt class="col-sm-3">Library ID</dt>
+        <dd class="col-sm-9 font-monospace">{{ lib_id }}</dd>
+
+        <dt class="col-sm-3">Créée le</dt>
+        <dd class="col-sm-9">
+          {% if created %}
+            {{ created|date:"Y-m-d H:i" }}
+          {% else %}
+            —
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-3">Nombre de documents</dt>
+        <dd class="col-sm-9">{{ total_docs }}</dd>
+      </dl>
+    </div>
+  </div>
+
+  <h4 class="h5 mt-4">📚 Documents de la librairie</h4>
+
+  {% if docs %}
+    <div class="table-responsive mt-3">
+      <table class="table table-sm table-striped align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>ID</th>
+            <th>Nom</th>
+            <th>Type MIME</th>
+            <th>Taille (Ko)</th>
+            <th>Statut</th>
+            <th>Créé le</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in docs %}
+            <tr>
+              <td class="font-monospace small text-muted">{{ d.id }}</td>
+              <td>{{ d.name|default:"(sans nom)" }}</td>
+              <td>{{ d.mime_type|default:"—" }}</td>
+              <td>
+                {% if d.size %}
+                  {{ d.size|floatformat:1 }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                {% if d.processing_status %}
+                  <span class="badge {% if d.processing_status == 'Completed' %}bg-success{% elif d.processing_status == 'Running' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                    {{ d.processing_status }}
+                  </span>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                {% if d.created_at %}
+                  {{ d.created_at|date:"Y-m-d H:i" }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted fst-italic mt-3">Aucun document dans cette librairie.</p>
+  {% endif %}
+</div>
+{% endblock %}

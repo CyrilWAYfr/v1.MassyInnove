@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% block head_title %}{% endblock %}{% endblock %}
+
+{% block page_title %}
+  <h1 class="main-title">{% block page_heading %}{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}{% block account_content %}{% endblock %}{% endblock %}

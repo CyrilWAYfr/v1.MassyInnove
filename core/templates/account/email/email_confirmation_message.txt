@@ -1,0 +1,7 @@
+Bonjour {{ user.get_full_name|default:user.email }},
+
+Cliquez ci-dessous pour confirmer votre adresse et définir votre mot de passe
+
+{{ activate_url }}
+
+En cas de problème particulier, contactez Cyril : c.way@mairie-massy.fr

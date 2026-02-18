@@ -1,0 +1,13 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+
+{% block head_title %}{% trans "Déconnexion" %}{% endblock %}
+{% block page_heading %}{% trans "Déconnexion" %}{% endblock %}
+
+{% block account_content %}
+<p class="text-muted">{% trans "Êtes‑vous sûr de vouloir vous déconnecter ?" %}</p>
+<form method="post" action="{% url 'account_logout' %}">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-success">{% trans "Se déconnecter" %}</button>
+</form>
+{% endblock %}

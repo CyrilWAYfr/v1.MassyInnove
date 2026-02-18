@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Massy Innove : Aide aux CR{% endblock %}
+
+{% block head_css %}
+<style>
+  /* --- Base --- */
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    margin: 0; padding: 0; display: flex; flex-direction: column;
+    min-height: 100vh; background-color: #e5ddd5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'%3E%3Cpath fill='%23d6cbb4' fill-opacity='0.2' d='M1 3h1v1H1V3zm2-2h1v1H3V1z'%3E%3C/path%3E%3C/svg%3E");
+  }
+  .page-wrap { display: flex; flex-direction: column; align-items: center; padding: 20px 12px; gap: 16px; }
+  .upload-container { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 1100px; text-align: center; }
+  .main-title { font-size: 24px; margin: 10px 0; color: #075E54; text-align: center; }
+  .description-text { font-size: 14px; font-style: italic; color: #555; opacity: 0.9; margin: 0 auto 18px; max-width: 700px; line-height: 1.6; text-align: center; }
+
+  /* --- Layout cartes --- */
+  .content-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; width: 100%; }
+  .card { background: #fff; border: 2px solid #075E54; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.08); padding: 20px; text-align: left; font-size: 14px; }
+
+  /* En-tête de carte (pavé gris, centré sur 2 lignes) */
+  .card-header { display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:10px; background:#f0f0f0; padding:12px 14px; border-radius:8px; text-align:center; }
+  .card-head-left{ display:flex; align-items:center; justify-content:center; gap:10px; }
+  .card-icon { width: 36px; height: 36px; flex: none; border-radius: 50%; border: 2px solid #075E54; display: inline-flex; align-items: center; justify-content: center; }
+  .card-title { font-size: 18px; margin: 0; color: #075E54; }
+  .card-subtitle{ margin:0; font-size:14px; color:#333; opacity:.9; text-align:center; }
+
+  /* Listes */
+  .card-list { margin: 8px 0 12px; padding-left: 18px; font-size: 14px; color: #333; line-height: 1.5; list-style: disc outside; }
+  .card-list li { margin: 6px 0; color: inherit; }
+  .center-list{ text-align:center; list-style-position: inside; padding-left:0; }
+
+  /* Boutons */
+  .card-cta { display:block; width:100%; background:#075E54; color:#fff; text-decoration:none; padding:10px 14px; border-radius:6px; font-weight:600; border:none; cursor:pointer; font-size:14px; text-align:center; }
+  .card-cta:hover { background:#128C7E; }
+  .card-cta:focus { outline:3px solid rgba(7,94,84,.35); outline-offset:3px; }
+
+  /* Boutons secondaires (préparation : choisir un fichier) */
+  .btn-secondary { display:inline-block; background:transparent; color:#075E54; border:2px solid #075E54; padding:10px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:14px; text-align:center; }
+  .btn-secondary:hover { background:#e6f3f1; }
+  .btn-secondary:focus { outline:3px solid rgba(7,94,84,.25); outline-offset:2px; }
+
+  /* Formulaire IA (unifié) */
+  .upload-form { display:flex; flex-direction:column; gap:10px; }
+  textarea { font-family:'Helvetica Neue', Arial, sans-serif; font-size:14px; line-height:1.5; width:100%; min-height:120px; padding:10px; border:1px solid #ccc; border-radius:6px; resize:vertical; }
+  textarea::placeholder { font-size:14px; opacity:.7; }
+  .character-count { text-align:right; font-size:12px; color:#666; margin-top:-6px; }
+
+  /* Inputs fichier masqués pour de bon */
+  #iaUnifiedForm .file-actions input[type="file"],
+  #iaUnifiedForm .file-label input[type="file"] {
+    position:absolute !important; left:-9999px !important;
+    width:1px !important; height:1px !important; padding:0 !important; margin:0 !important;
+    border:0 !important; overflow:hidden !important;
+    clip:rect(0 0 0 0) !important; clip-path:inset(50%) !important;
+    white-space:nowrap !important; pointer-events:none !important;
+  }
+
+  .file-label { display:inline-block; justify-self:center; text-align:center; }
+  .file-actions { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; justify-items:center; align-items:center; text-align:center; }
+  .or-sep { display:flex; align-items:center; justify-content:center; gap:10px; color:#555; opacity:.9; font-style:italic; }
+  .or-sep::before, .or-sep::after { content:""; height:1px; background:#ccc; flex:1; }
+  .help { font-size:12px; color:#666; text-align:center; }
+
+  /* Puce de statut du fichier sélectionné */
+  .file-chip{ display:inline-flex; align-items:center; gap:8px; background:#e6f3f1; border:1px solid rgba(7,94,84,.3); color:#075E54; padding:6px 10px; border-radius:9999px; margin-top:6px; }
+  .chip-name{ font-size:13px; }
+  .chip-action{ background:transparent; border:none; color:#075E54; font-weight:600; cursor:pointer; padding:0; font-size:13px; text-decoration:underline; }
+  .chip-action:hover{ color:#128C7E; }
+
+  @media (max-width: 950px) { .content-wrapper { grid-template-columns: 1fr; } .file-actions { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Overlay de chargement -->
+<div id="loading-overlay" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.5); justify-content:center; align-items:center; flex-direction:column;">
+  <div class="spinner" style="border:8px solid #f3f3f3; border-top:8px solid #075E54; border-radius:50%; width:60px; height:60px; animation:spin 2s linear infinite;"></div>
+  <p class="loading-text" style="color:#fff; margin-top:20px; font-size:18px;">Analyse en cours, veuillez patienter...</p>
+</div>
+<style>@keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }</style>
+
+<div class="page-wrap">
+  <div class="upload-container">
+    <h1 class="main-title">Génération de Compte-Rendu assistée par IA... ou pas !</h1>
+    <p class="description-text">L'IA peut vous aider dans la rédaction de votre compte-rendu, à partir de la transcription de votre réunion. Si vous avez déjà le contenu de votre compte-rendu mais que vous voulez gagner du temps sur le travail sous Word, cet asssistant peut aussi vous aider.</p>
+
+    <div class="content-wrapper">
+
+      <!-- Colonne gauche : Parcours IA (formulaire unifié) -->
+      <section class="card" aria-label="Parcours avec IA">
+        <div class="card-header">
+          <div class="card-head-left">
+            <span class="card-icon" aria-hidden="true">
+              <!-- Icône IA -->
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 20h16V4H4v16z" stroke="#075E54" stroke-width="2"/></svg>
+            </span>
+            <h2 class="card-title">Avec l’IA</h2>
+          </div>
+          <p class="card-subtitle">Collez vos notes ou chargez le fichier de la transcription de votre réunion, puis soumettez la à l’IA pour obtenir son analyse. Vous pourrez alors compléter et corriger cette analyse avant de générer le doc Word. Choisissez ci-dessous le format de la transcription : copiez/collez du texte directement ou bien chargez un doc texte ou Word. Si vous avez besoin d'aide pour obtenir la transcription d'une réunion Teams, <a href="https://massy-innove.fr/static/ProcedureCR.pdf">la procédure complète est ici</a>.</p>
+        </div>
+
+        <form id="iaUnifiedForm" method="post" enctype="multipart/form-data" action="{% url 'assistantcr:upload_and_process' %}" class="upload-form" onsubmit="return handleUnifiedSubmit()">
+          {% csrf_token %}
+          <input type="hidden" name="upload_method" id="upload_method" value="">
+
+          <!-- Étape 1 : contenu -->
+          <div class="step">
+            <div class="step-title" style="font-weight:600; margin-bottom:6px;">Étape 1 — Ajoutez votre contenu</div>
+            <textarea name="pasted_text" id="pastedText" placeholder="Collez vos notes de réunion ici…"></textarea>
+            <div class="character-count"><span id="charCount">0</span> caractères</div>
+            <div class="or-sep">ou</div>
+            <div class="file-actions">
+              <label class="file-label" for="txt_file">
+                <input type="file" id="txt_file" name="txt_file" accept=".txt">
+                <span class="btn-secondary" role="button" tabindex="0">Chargez un fichier texte</span>
+              </label>
+              <label class="file-label" for="word_file">
+                <input type="file" id="word_file" name="word_file" accept=".doc,.docx">
+                <span class="btn-secondary" role="button" tabindex="0">Chargez un fichier Word</span>
+              </label>
+            </div>
+            <div id="fileChip" class="file-chip" hidden aria-live="polite">
+              <span class="chip-name">Fichier sélectionné : <strong id="chipFileName"></strong></span>
+              <button type="button" class="chip-action" id="chipChangeBtn">Changer</button>
+            </div>
+          </div>
+
+          <!-- Étape 2 : soumission -->
+          <div class="step" style="margin-top:10px;">
+            <div class="step-title" style="font-weight:600; margin-bottom:6px;">Étape 2 — Soumettez votre transcription à l’IA</div>
+            <button type="submit" class="card-cta" id="submitIA" disabled>Soumettre votre contenu à l’IA</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Colonne droite : Sans IA -->
+      <aside class="card" role="complementary" aria-label="Saisie de compte-rendu sans IA">
+        <div class="card-header">
+          <div class="card-head-left">
+            <span class="card-icon" aria-hidden="true">
+              <!-- Icône stylo -->
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 20h4l10.5-10.5a1.5 1.5 0 0 0 0-2.121l-1.879-1.879a1.5 1.5 0 0 0-2.121 0L4 16v4z" stroke="#075E54" stroke-width="2"/></svg>
+            </span>
+            <h2 class="card-title">Sans IA</h2>
+          </div>
+          <p class="card-subtitle">Saisissez le contenu de votre compte-rendu dans un formulaire simple à remplir sans vous soucier de la mise en forme. Cet assistant fera ensuite le travail sous Word pour vous !</p>
+        </div>
+        <ul class="card-list center-list">
+          <li>Saisie via un formulaire guidé</li>
+          <li>Rendu avec style et logo conformes à la charte Mairie</li>
+          <li>Export .docx prêt à être diffusé</li>
+        </ul>
+        <a class="card-cta" href="{% url 'assistantcr:generate_meeting_minutes_from_form' %}">Travaillez directement sur un formulaire</a>
+      </aside>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Compteur de caractères + état bouton
+  function updateCharacterCount() {
+    const text = document.getElementById('pastedText')?.value || '';
+    const el = document.getElementById('charCount');
+    if (el) el.textContent = text.length;
+  }
+
+  function setMethod(m) { const hidden = document.getElementById('upload_method'); if (hidden) hidden.value = m; }
+
+  function updateSubmitState() {
+    const txtEl = document.getElementById('txt_file');
+    const docEl = document.getElementById('word_file');
+    const text  = document.getElementById('pastedText');
+    const btn   = document.getElementById('submitIA');
+
+    const hasTxt  = txtEl && txtEl.files && txtEl.files.length > 0;
+    const hasWord = docEl && docEl.files && docEl.files.length > 0;
+    const hasPaste = (text?.value || '').trim().length > 0;
+
+    if (hasWord) setMethod('word');
+    else if (hasTxt) setMethod('txt');
+    else if (hasPaste) setMethod('paste');
+    else setMethod('');
+
+    if (btn) btn.disabled = !(hasWord || hasTxt || hasPaste);
+
+    // Puce de statut
+    const chip = document.getElementById('fileChip');
+    const chipName = document.getElementById('chipFileName');
+    if (chip && chipName) {
+      if (hasWord) { chipName.textContent = docEl.files[0].name; chip.hidden = false; }
+      else if (hasTxt) { chipName.textContent = txtEl.files[0].name; chip.hidden = false; }
+      else { chip.hidden = true; chipName.textContent = ''; }
+    }
+  }
+
+  function clearOthers(except) {
+    const txtEl = document.getElementById('txt_file');
+    const docEl = document.getElementById('word_file');
+    const text  = document.getElementById('pastedText');
+    if (except !== 'txt'  && txtEl) txtEl.value = '';
+    if (except !== 'word' && docEl) docEl.value = '';
+    if (except !== 'paste' && text) { text.value = ''; updateCharacterCount(); }
+  }
+
+  function handleUnifiedSubmit() {
+    // Sélection finale du mode juste avant envoi
+    const txtEl = document.getElementById('txt_file');
+    const docEl = document.getElementById('word_file');
+    const text  = document.getElementById('pastedText');
+    if (docEl && docEl.files && docEl.files.length > 0) setMethod('word');
+    else if (txtEl && txtEl.files && txtEl.files.length > 0) setMethod('txt');
+    else if (text && text.value.trim().length > 0) setMethod('paste');
+    else { alert('Ajoutez du contenu (texte, fichier TXT ou Word) avant de soumettre.'); return false; }
+
+    var overlay = document.getElementById('loading-overlay');
+    if (overlay) overlay.style.display = 'flex';
+    return true;
+  }
+
+  (function(){
+    const txtEl = document.getElementById('txt_file');
+    const docEl = document.getElementById('word_file');
+    const text  = document.getElementById('pastedText');
+
+    // Mise à jour en direct
+    if (text) text.addEventListener('input', function(){ updateCharacterCount(); clearOthers('paste'); updateSubmitState(); });
+    if (txtEl) txtEl.addEventListener('change', function(){ clearOthers('txt'); updateSubmitState(); });
+    if (docEl) docEl.addEventListener('change', function(){ clearOthers('word'); updateSubmitState(); });
+
+    // Accessibilité : activer le clic au clavier sur les spans-boutons
+    document.querySelectorAll('.file-label .btn-secondary').forEach(function(btn){
+      btn.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.closest('label').querySelector('input[type="file"]').click(); } });
+    });
+
+    // Bouton "Changer" de la puce
+    const chipBtn = document.getElementById('chipChangeBtn');
+    if (chipBtn) chipBtn.addEventListener('click', function(){
+      const method = document.getElementById('upload_method')?.value;
+      if (method === 'word') document.getElementById('word_file')?.click();
+      else if (method === 'txt') document.getElementById('txt_file')?.click();
+    });
+
+    // init
+    updateCharacterCount();
+    updateSubmitState();
+  })();
+</script>
+{% endblock %}

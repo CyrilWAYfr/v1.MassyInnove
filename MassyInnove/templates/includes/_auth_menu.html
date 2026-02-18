@@ -1,0 +1,24 @@
+<nav class="site-nav">
+  <div class="nav-left">
+    <a href="/">Accueil</a>
+  </div>
+
+  <div class="nav-right">
+    {% if user.is_authenticated %}
+      <span>Bonjour, {{ user.email|default:user.get_username }}</span>
+      <a href="{% url 'profile' %}">Mon profil</a>
+
+      {# Option A (recommandée): logout via POST #}
+      <form method="post" action="{% url 'account_logout' %}" style="display:inline">
+        {% csrf_token %}
+        <button type="submit">Se déconnecter</button>
+      </form>
+
+      {# Option B (facile, mais GET): nécessite ACCOUNT_LOGOUT_ON_GET=True #}
+      {# <a href="{% url 'account_logout' %}">Se déconnecter</a> #}
+    {% else %}
+      <a href="{% url 'account_login' %}">Se connecter</a>
+      <a href="{% url 'request_registration' %}">Créer un compte</a>
+    {% endif %}
+  </div>
+</nav>

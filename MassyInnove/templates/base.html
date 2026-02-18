@@ -1,0 +1,175 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Massy Innove !{% endblock %}</title>
+
+    <!-- Bootstrap & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+
+    <!-- Favicon / App CSS -->
+    <link rel="icon" href="{% static 'favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+
+    {# En-tête extensible (scripts, metas…) #}
+    {% block extra_head %}{% endblock %}
+
+    {# <<< NOUVEAU : styles par page (ex. home.html) #}
+    {% block head_css %}{% endblock %}
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+
+</head>
+<body class="layout-col">
+    
+    <header class="site-header">
+  <div class="header-grid">
+    <div></div>  {# colonne gauche vide (équilibrage du grid) #}
+
+    <div class="header-center">
+      <a href="{% url 'home' %}" class="logo-link" aria-label="Accueil Massy Innove">
+        <img src="{% static 'logo-inno.png' %}" alt="Massy Innove" class="site-logo">
+      </a>
+    </div>
+
+    <nav class="actions" aria-label="Actions utilisateur">
+      <a class="icon-link" href="{% url 'home' %}" title="Accueil">
+        <i class="fas fa-home" aria-hidden="true"></i><span class="sr-only">Accueil</span>
+      </a>
+
+      {% if user.is_authenticated %}
+        <a class="icon-link" href="{% url 'core:profile' %}" title="Mon profil">
+          <i class="fas fa-user-circle" aria-hidden="true"></i><span class="sr-only">Mon profil</span>
+        </a>
+        <form method="post" action="{% url 'account_logout' %}" style="display:inline">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}">
+          {% if user.is_staff %}
+              <a class="icon-link" href="{% url 'core:admin_dashboard' %}" title="Administration">
+                <i class="fas fa-cogs" aria-hidden="true"></i><span class="sr-only">Administration</span>
+              </a>
+            {% endif %}
+
+          <button type="submit" class="icon-btn" title="Se déconnecter">
+            <i class="fas fa-sign-out-alt" aria-hidden="true"></i><span class="sr-only">Se déconnecter</span>
+          </button>
+        </form>
+      {% else %}
+        <a class="icon-link" href="{% url 'account_login' %}?next={{ request.path|urlencode }}" title="Se connecter">
+          <i class="fas fa-sign-in-alt" aria-hidden="true"></i><span class="sr-only">Se connecter</span>
+        </a>
+        <a class="icon-link" href="{% url 'account_signup' %}" title="Créer un compte">
+          <i class="fas fa-user-plus" aria-hidden="true"></i><span class="sr-only">Créer un compte</span>
+        </a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+
+
+    <!-- Messages flash -->
+    <div id="django-messages" style="display:none;">
+        {% for message in messages %}
+            <div data-message="{{ message }}" data-tags="{{ message.tags }}"></div>
+        {% endfor %}
+    </div>
+
+
+    <!-- Contenu principal -->
+    <main id="content" class="form-container" role="main">
+        <div class="title-container">
+            {% block page_title %}{% endblock %}
+            {% block page_description %}{% endblock %}
+        </div>
+        
+        
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        
+        
+        {% block content %}{% endblock %}
+    </main>
+
+
+    <footer class="site-footer text-center text-muted">
+         &copy; {% now "Y" %} Ville de Massy
+         {% block footer_extra %}{% endblock %}
+    </footer>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+
+    {% block extra_js %}
+    <!-- SimpleMDE (éditeur Markdown) -->
+    <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+{% endblock %}
+
+<style>
+.toast-message {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 4000;
+    padding: 12px 18px;
+    border-radius: 6px;
+    background: #28a745; /* couleur succès par défaut */
+    color: white;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.25);
+    font-size: 0.9rem;
+    min-width: 180px;
+    text-align: left;
+}
+.toast-message.error { background: #dc3545; }
+.toast-message.warning { background: #ffc107; color:black; }
+.toast-message.info { background: #17a2b8; }
+.toast-message.show {
+    opacity: 1;
+    transform: translateY(0px);
+}
+</style>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const container = document.getElementById("django-messages");
+    if (!container) return;
+
+    const msgs = container.querySelectorAll("[data-message]");
+    msgs.forEach((el, index) => {
+
+        const msg = el.getAttribute("data-message");
+        const tags = el.getAttribute("data-tags") || "info";
+
+        const toast = document.createElement("div");
+        toast.className = "toast-message " + tags;
+        toast.textContent = msg;
+
+        document.body.appendChild(toast);
+
+        // petit délai pour l’animation
+        setTimeout(() => toast.classList.add("show"), 50);
+
+        // disparition automatique
+        setTimeout(() => {
+            toast.classList.remove("show");
+            setTimeout(() => toast.remove(), 350);
+        }, 2200 + (index * 300));  // décalage si plusieurs toasts
+    });
+});
+</script>
+
+
+
+
+
+</body>
+</html>

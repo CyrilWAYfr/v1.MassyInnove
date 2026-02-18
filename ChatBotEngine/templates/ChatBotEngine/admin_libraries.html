@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Librairies Mistral — Admin{% endblock %}
+
+{% block page_title %}
+  <h1 class="main-title">Librairies Mistral</h1>
+{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="text-muted">
+      Vue admin — affiche toutes les librairies du workspace Mistral, triées par date décroissante.
+      {% if with_counts %}
+        <span class="badge bg-secondary ms-2">Comptage des documents activé</span>
+      {% endif %}
+    </div>
+    <div>
+      {% if with_counts %}
+        <a class="btn btn-sm btn-outline-secondary" href="?">Masquer nb de documents</a>
+      {% else %}
+        <a class="btn btn-sm btn-outline-secondary" href="?with_counts=1">Afficher nb de documents</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Library ID</th>
+          <th>Nom</th>
+          <th>Description</th>
+          <th>Créée le</th>
+          <th>Agent lié</th>
+          <th>Utilisateur lié</th>
+          <th class="text-nowrap"># Docs</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+          <tr>
+            <td class="font-monospace small">{{ r.id }}</td>
+            <td class="text-break">{{ r.name }}</td>
+            <td class="text-break small text-muted">{{ r.description }}</td>
+            <td class="text-nowrap">
+              {% if r.created_at %}
+                {{ r.created_at|date:"Y-m-d H:i" }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>
+              {% if r.agent %}
+                <div class="small mt-1">#{{ r.agent.id }} — {{ r.agent.title }}</div>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if r.user %}
+                <div class="small mt-1">
+                  #{{ r.user.id }} — {{ r.user.username|default:r.user.email|default:"(sans identifiant)" }}
+                </div>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if r.docs_count is not None %}
+                {{ r.docs_count }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <a href="{% url 'chatbotengine:admin_library_detail' %}?lib_id={{ r.id }}&name={{ r.name|urlencode }}&desc={{ r.description|urlencode }}&created={{ r.created_at|date:'Y-m-d\\TH:i:s' }}"
+   class="btn btn-sm btn-outline-primary">
+  Détails
+</a>
+
+              <form method="post" action="{% url 'chatbotengine:admin_delete_library' r.id %}" class="d-inline"
+                    onsubmit="return confirm('Supprimer la librairie {{ r.id }} ? Cette action est irréversible.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger"
+                        {% if r.agent or r.user %}disabled title="Suppression impossible car référencée par un agent ou un utilisateur !"{% endif %}>
+                  Supprimer
+                </button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8"><em>Aucune librairie trouvée.</em></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <p class="text-muted small mt-3">
+    ⚠️ La suppression d’une librairie Mistral supprime aussi tous ses documents côté Mistral.
+  </p>
+</div>
+{% endblock %}

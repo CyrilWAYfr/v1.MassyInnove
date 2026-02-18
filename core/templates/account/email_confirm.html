@@ -1,0 +1,29 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+
+{% block head_title %}{% trans "Confirmation d’e‑mail" %}{% endblock %}
+{% block page_heading %}{% trans "Confirmation d’e‑mail" %}{% endblock %}
+
+{% block account_content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8 col-md-10">
+    {% if confirmation %}
+      <p class="text-muted">
+        {% blocktrans with email=confirmation.email_address.email %}
+          Confirmez l’adresse <strong>{{ email }}</strong> pour finaliser l’activation de votre compte.
+        {% endblocktrans %}
+      </p>
+
+      <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">{% trans "Confirmer" %}</button>
+      </form>
+    {% else %}
+      <div class="alert alert-danger">
+        {% trans "Ce lien de confirmation est invalide ou a déjà été utilisé." %}
+      </div>
+      <a class="btn btn-success" href="{% url 'account_email' %}">{% trans "Gérer mes e‑mails" %}</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

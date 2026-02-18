@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+
+{% block extra_head %}
+    <style>
+    .status-new {
+        background-color: #e9ecef !important;   /* gris clair */
+        font-weight: 600;
+    }
+    .status-ia {
+        background-color: #cfe2ff !important;   /* bleu clair */
+        font-weight: 600;
+    }
+    .status-mail {
+        background-color: #d1e7dd !important;   /* vert clair */
+        font-weight: 600;
+    }
+    .status-auto {
+    background-color: #f8d7da !important;   /* rouge clair Bootstrap */
+    font-weight: 600;
+}
+
+
+    .sort-arrow {
+        font-size: 0.75rem;
+        opacity: 0.7;
+        margin-left: 4px;
+    }
+    .table thead a {
+        color: inherit !important;
+        text-decoration: none !important;
+    }
+
+    .table td,
+    .table th {
+        vertical-align: middle !important;
+    }
+    
+    /* Base commune DUPLIQUE DANS EMAIL_STEP1.HTML DONC Y REPERCUTER AUSSI LES EVENTUELLES MODIFS*/
+    .badge-domaine {
+        font-weight: 500;
+        font-size: 0.75rem;
+        padding: 0.35em 0.55em;
+        border-radius: 0.4rem;
+        white-space: nowrap;
+
+        /* fallback de couleur si aucune variante n’existe */
+        background-color: #f1f3f5;
+        color: #495057;
+    }
+
+    /* Variantes par domaine (discrètes) */
+    .badge-domaine-1 {
+        background-color: #e7f1ff;
+        color: #0d6efd;
+    }
+
+    .badge-domaine-2 {
+        background-color: #eaf7f0;
+        color: #198754;
+    }
+
+    .badge-domaine-3 {
+        background-color: #fdf2e9;
+        color: #fd7e14;
+    }
+
+    .badge-domaine-4 {
+        background-color: #f2f2f2;
+        color: #6c757d;
+    }
+
+    
+    </style>
+
+
+    
+    
+{% endblock %}
+
+
+
+{% block page_title %}
+<h1>Contacts entrants</h1>
+{% endblock %}
+
+{% block content %}
+
+<form method="get" class="mb-3" id="filtersForm">
+    <input type="hidden" name="return_url" value="{{ return_url }}">
+
+    <div class="row g-2 align-items-center">
+        <!-- Statut d'abord -->
+        <div class="col-12 col-md-3 col-lg-2">
+            <select name="statut" class="form-select" onchange="document.getElementById('filtersForm').submit();">
+                <option value="">Tous statuts</option>
+                {% for s in statuts %}
+                    <option value="{{ s.id }}"
+                        {% if statut|default:'' == s.id|stringformat:"s" %}selected{% endif %}>
+                        {{ s.libelle }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Puis recherche -->
+        <div class="col-12 col-md-7 col-lg-8">
+            <input type="text"
+                   name="search"
+                   class="form-control"
+                   placeholder="Recherche : email, objet, contenu, num_unique..."
+                   value="{{ search }}">
+        </div>
+
+        <!-- Bouton -->
+        <div class="col-12 col-md-2 col-lg-2 d-grid">
+            <button class="btn btn-primary">Filtrer</button>
+        </div>
+    </div>
+</form>
+
+
+<table class="table table-sm table-bordered table-hover align-middle" style="font-size: 0.9rem;">
+    <thead class="table-light">
+    <tr>
+        <!-- STATUT -->
+        <th class="text-center">
+            <a href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&order={% if order == 'statut__id' %}-statut__id{% else %}statut__id{% endif %}">
+                Statut
+            </a>
+            {% if order == 'statut__id' %}
+                <span class="sort-arrow">▲</span>
+            {% elif order == '-statut__id' %}
+                <span class="sort-arrow">▼</span>
+            {% else %}
+                <span class="sort-arrow">▶</span>
+            {% endif %}
+        </th>
+        
+        <th>Domaine</th>
+
+        <!-- CANAL -->
+        <th class="text-center">
+            <a href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&order={% if order == 'canal__libelle' %}-canal__libelle{% else %}canal__libelle{% endif %}">
+                Canal
+            </a>
+            {% if order == 'canal__libelle' %}
+                <span class="sort-arrow">▲</span>
+            {% elif order == '-canal__libelle' %}
+                <span class="sort-arrow">▼</span>
+            {% else %}
+            <span class="sort-arrow">▶</span>
+            {% endif %}
+        </th>
+
+        <!-- DATE -->
+        <th class="text-center">
+            <a href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&order={% if order == 'date' %}-date{% else %}date{% endif %}">
+                Date
+            </a>
+            {% if order == 'date' %}
+                <span class="sort-arrow">▲</span>
+            {% elif order == '-date' %}
+                <span class="sort-arrow">▼</span>
+            {% else %}
+                <span class="sort-arrow">▶</span>
+            {% endif %}
+        </th>
+
+        <!-- EMAIL DEMANDEUR -->
+        <th>
+            <a href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&order={% if order == 'demandeur__email' %}-demandeur__email{% else %}demandeur__email{% endif %}">
+                Email demandeur
+            </a>
+            {% if order == 'demandeur__email' %}
+                <span class="sort-arrow">▲</span>
+            {% elif order == '-demandeur__email' %}
+                <span class="sort-arrow">▼</span>
+            {% else %}
+                <span class="sort-arrow">▶</span>
+            {% endif %}
+        </th>
+
+        <!-- NUM UNIQUE -->
+        <th>
+            <a href="?search={{ search }}&statut={{ statut }}&return_url={{ return_url|urlencode }}&order={% if order == 'demandeur__num_unique' %}-demandeur__num_unique{% else %}demandeur__num_unique{% endif %}">
+                Num unique
+            </a>
+            {% if order == 'demandeur__num_unique' %}
+                <span class="sort-arrow">▲</span>
+            {% elif order == '-demandeur__num_unique' %}
+                <span class="sort-arrow">▼</span>
+            {% endif %}
+        </th>
+
+        <!-- OBJET -->
+        <th>Objet</th>
+
+        <!-- ACTIONS -->
+        <th>Actions</th>
+    </tr>
+</thead>
+
+
+    <tbody>
+        {% for c in contacts %}
+        <tr>
+            <td class="text-center 
+                {% if c.statut_id == 1 %}status-new
+                {% elif c.statut_id == 2 %}status-ia
+                {% elif c.statut_id == 3 %}status-mail
+                {% elif c.statut_id == 4 %}status-auto
+                {% endif %}
+            ">
+                {{ c.statut.libelle }}
+            </td>
+            <td>
+                <span class="badge badge-domaine badge-domaine-{{ c.domaine.id }}">
+                    {{ c.domaine.libelle }}
+                </span>
+            </td>
+
+            <td class="text-center">{{ c.canal.libelle }}</td>
+            <td class="text-center">{{ c.date|date:"d/m/Y" }}</td>
+            <td>{{ c.demandeur.email }}</td>
+            <td>{{ c.demandeur.num_unique|default:"—" }}</td>
+            <td>{{ c.objet|default:"(Sans objet)" }}</td>
+            <td>
+                <div class="d-flex align-items-center" style="gap: 6px;">
+                    <a href="{% url 'logement:email_create_step2' contact_id=c.id %}?return_url={{ request.get_full_path|urlencode }}"
+                        class="btn btn-sm btn-primary">
+
+                        Modifier
+                    </a>
+
+
+
+
+                    <form method="post"
+                          action="{% url 'logement:contact_delete' domaine_id=c.domaine.id contact_id=c.id %}"
+                          onsubmit="return confirm('Confirmer la suppression de ce contact ?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="return_url"
+                                   value="{{ request.get_full_path }}">
+                        <button type="submit" class="btn btn-sm btn-danger">
+                            Supprimer
+                        </button>
+                    </form>
+                </div>
+            </td>
+
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center">Aucun contact trouvé.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="mt-4">
+        {% if return_url %}
+        <a href="{{ return_url }}" class="btn btn-secondary">← Retour à l’accueil</a>
+    {% else %}
+        <a href="{% url 'home' %}" class="btn btn-secondary">← Retour à l’accueil</a>
+    {% endif %}
+
+
+</div>
+
+
+{% endblock %}

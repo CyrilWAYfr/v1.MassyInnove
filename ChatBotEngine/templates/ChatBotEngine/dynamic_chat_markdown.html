@@ -1,0 +1,908 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ agent_name }} — Chat{% endblock %}
+
+{% block page_title %}
+  <h1 class="main-title">{{ agent_name }}</h1>
+  {% if debug_text %}
+    <p id="debug-info" class="text-muted small" style="font-style: italic; margin-top:4px;">
+      {{ debug_text|safe }}
+    </p>
+  {% else %}
+    <p id="debug-info" class="text-muted small" style="font-style: italic; margin-top:4px;"></p>
+  {% endif %}
+{% endblock %}
+
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'chatbotengine/chat.css' %}">
+{% endblock %}
+
+{% block content %}
+<style>
+  .chat-thread{
+    padding: 18px 12px 10px !important;
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6'%3E%3Cpath fill='%23b8bec9' fill-opacity='0.15' d='M0 5h1v1H0zm5-5h1v1H5z'/%3E%3C/svg%3E") repeat,
+      #f0f2f5 !important;
+  }
+  .chat-thread .msg:first-child{ margin-top: 8px !important; }
+
+  .msg{ display:flex !important; width:100% !important; }
+  .msg--me  { justify-content:flex-start !important; }
+  .msg--bot { justify-content:flex-end   !important; }
+
+  .msg--me  .msg__bubble{ margin-right:auto !important; margin-left:12px !important; }
+  .msg--bot .msg__bubble{ margin-left:auto  !important; margin-right:12px !important; }
+
+  .msg--me .msg__bubble{
+    background:#fff !important; color:#111 !important;
+    border:1px solid rgba(0,0,0,.06) !important;
+    border-bottom-left-radius:6px !important; border-bottom-right-radius:12px !important;
+    box-shadow:0 1px .5px rgba(0,0,0,.06) !important;
+  }
+  .msg--bot .msg__bubble{
+    background:#dcf8c6 !important; color:#111 !important;
+    border:1px solid rgba(0,0,0,.05) !important;
+    border-bottom-right-radius:6px !important; border-bottom-left-radius:12px !important;
+    box-shadow:0 1px .5px rgba(0,0,0,.06) !important;
+    padding-right: 28px !important; /* place pour le bouton copier */
+  }
+
+  .msg__meta, .msg__note{
+    text-align:right !important;
+    font-size:11px !important;
+    font-style:italic !important;
+    opacity:.85; margin-top:4px !important; line-height:1.1;
+  }
+
+  .chat-inputbar .chat-form {
+    width: 100%;
+    max-width: 820px;
+    margin: 0 !important;
+  }
+  .chat-inputbar { padding-left: 12px; }
+
+  .chat-input[disabled]{ opacity:.75; }
+  .send-btn[disabled]{ opacity:.6; cursor:not-allowed; }
+
+  .msg.typing .msg__bubble{
+    background: #dcf8c6 !important;
+    color: #111 !important;
+    border: 1px solid rgba(0,0,0,.05) !important;
+    border-bottom-right-radius: 6px !important;
+    border-bottom-left-radius: 12px !important;
+    min-width: 64px;
+    padding: 10px 14px;
+    animation: bubble-breathe 1.6s ease-in-out infinite;
+  }
+  .typing-dots{ display:inline-flex; align-items:center; gap:6px; }
+  .typing-dots span{
+    width:6px; height:6px; border-radius:50%;
+    background:#2e4d44; opacity:.35; animation:typing-bounce 1.2s ease-in-out infinite;
+  }
+  .typing-dots span:nth-child(2){ animation-delay:.15s; }
+  .typing-dots span:nth-child(3){ animation-delay:.30s; }
+  @keyframes typing-bounce{ 0%,80%,100%{transform:translateY(0);opacity:.35;} 40%{transform:translateY(-4px);opacity:.9;} }
+  @keyframes bubble-breathe{ 0%,100%{box-shadow:0 1px .5px rgba(0,0,0,.06);} 50%{box-shadow:0 2px 3px rgba(0,0,0,.14);} }
+
+  .chat-form { grid-template-columns: 1fr !important; }
+
+  .msg__bubble {
+  position: relative;
+  width: fit-content;
+  max-width: calc(100% - 48px);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal !important; /* ✅ plus de sauts excessifs */
+  padding: 8px 12px !important;   /* ✅ bulles moins “gonflées” */
+  text-align: left !important;
+  font-size: 0.92rem !important;  /* ✅ plus compact */
+  line-height: 1.35 !important;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif !important;
+  color: #222 !important;
+}
+
+.msg__bubble h1,
+.msg__bubble h2,
+.msg__bubble h3 {
+  font-size: 0.98rem !important;
+  font-weight: 600 !important;
+  margin: 0.3em 0 0.2em 0 !important;
+}
+
+.msg__bubble p,
+.msg__bubble ul,
+.msg__bubble ol {
+  margin: 0.25em 0 !important;
+}
+
+
+  @media (min-width: 992px) {
+    .msg__bubble { max-width: 820px !important; }
+  }
+  .msg { margin: 8px 0 !important; }
+
+  .msg__bubble p { margin: 0; }
+  .msg__bubble p + p { margin-top: .5em; }
+
+  /* Bouton copier (discret) */
+  .copy-btn{
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: .45;
+    transition: opacity .2s ease, transform .05s ease;
+    color: #2e4d44;
+  }
+  .copy-btn:hover{ opacity:.9; }
+  .copy-btn:active{ transform: scale(0.95); }
+  .copy-btn:focus{ outline: none; }
+
+  /* Lien “Mes conversations” dans le footer (toujours visible) */
+  .chat-bottom-links{
+    margin-top: 6px;
+    padding: 0 0 6px 0;
+    text-align: left;
+  }
+  .chat-bottom-links a{
+    font-size: 13px;
+    color: #2e4d44;
+    opacity: .85;
+    text-decoration: none;
+  }
+  .chat-bottom-links a:hover{
+    text-decoration: underline;
+    opacity: 1;
+  }
+  
+  #chat-files-list div {
+  padding: 4px 8px;
+  border-left: 3px solid #ccc;
+  margin-bottom: 4px;
+  }
+  #chat-files-list div:has(.✅) { border-color: #28a745; }
+  #chat-files-list div:has(.❌) { border-color: #dc3545; }
+
+/* --- Cartouche fichier IA (sous la bulle) --- */
+.ai-file-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  /* ✅ Alignement et largeur */
+  justify-content: flex-start;
+  margin: 6px 12px 10px auto;     /* décalé à droite */
+  max-width: 70%;                 /* largeur max comme une bulle IA */
+  min-width: 220px;
+  width: fit-content;
+
+  /* ✅ Apparence */
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #eef7ef;
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  font-size: 0.85rem;
+  transition: background 0.2s ease;
+}
+
+.ai-file-card:hover { background: #e2f3e5; }
+
+.ai-file-card i {
+  color: #4a7b6f;
+  font-size: 1rem;
+}
+
+.ai-file-card .file-info {
+  flex-grow: 1;
+  line-height: 1.25;
+  color: #222;
+}
+
+.ai-file-card .file-info strong {
+  font-weight: 600;
+}
+
+.ai-file-card a.download-link {
+  text-decoration: none;
+  color: #2e4d44;
+  border: 1px solid #cfd6d3;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+
+.ai-file-card a.download-link:hover {
+  background: #e6f0ed;
+  border-color: #a5bcb3;
+}
+
+.ai-file-card {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: fadeSlideIn 0.4s ease forwards;
+}
+@keyframes fadeSlideIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ai-file-card .file-desc-wrapper {
+  display: inline-block;
+  position: relative;
+  pointer-events: auto !important;
+}
+
+
+
+  
+  
+</style>
+
+<div class="chat-page">
+  <main id="botResponses" class="chat-thread" aria-live="polite"></main>
+
+  <footer class="chat-inputbar">
+    <form id="chatForm" method="post" action="{% url 'chatbotengine:dynamic_chat_markdown' id=row_id %}" class="chat-form">
+      {% csrf_token %}
+      <input
+        id="prompt"
+        name="prompt"
+        class="chat-input"
+        type="text"
+        placeholder="Écrivez un message"
+        autocomplete="off"
+        enterkeyhint="send"
+        required
+      />
+    </form>
+
+    <!-- Lien placé DANS le footer pour être toujours visible en bas -->
+    
+{% if agent_enable_file_upload %}
+
+<!-- Bloc moderne d’upload de fichier pour le chat -->
+<div id="chat-upload-area" class="my-3">
+  <form id="chat-upload-form" enctype="multipart/form-data"
+        class="d-flex align-items-center gap-2 flex-wrap">
+    {% csrf_token %}
+    
+    <input type="file"
+       name="file"
+       id="chat-file-input"
+       accept=".docx,.xlsx,.pptx,.html,.txt,.csv,.jpeg,.jpg,.png,.gif,.pdf"
+       data-max-size="20971520"
+       hidden>
+
+    <button type="button" id="chat-upload-btn"
+            class="btn btn-outline-secondary btn-sm">
+      📎 Joindre un fichier (formats courants : docx, xlsx, pptx, txt, pdf, jpeg... et taille max 20 Mo)
+    </button>
+  </form>
+
+<!-- Zone d’affichage du suivi des fichiers -->
+<div id="chat-files-list" class="mt-2 small text-muted">
+  {% if existing_files %}
+    {% for f in existing_files %}
+      <div data-file-id="{{ f.id }}">
+        {% if f.status == "Completed" or f.status == "Succeeded" %}
+          ✅ {{ f.name }} — Indexé (prêt à l’emploi)
+        {% elif f.status == "Running" %}
+          🔄 {{ f.name }} — En traitement...
+        {% else %}
+          ❌ {{ f.name }} — {{ f.status }}
+        {% endif %}
+        <button type="button" class="btn btn-sm btn-outline-danger ms-2 delete-file-btn" title="Supprimer">🗑</button>
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>
+</div>
+
+{% endif %}
+
+
+    
+    
+    
+    <div class="chat-bottom-links">
+      <a href="{% url 'chatbotengine:my_conversations' %}">← Retrouvez toutes vos conversations passées ici !</a>
+    </div>
+  </footer>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<!-- Markdown + sanitize -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+
+<script>
+
+
+
+
+
+console.log("💡 Script du chat chargé !");
+document.addEventListener('DOMContentLoaded', function () {
+  console.log("✅ DOM entièrement chargé !");
+
+  const form   = document.getElementById('chatForm');
+
+    const input  = document.getElementById('prompt');
+    const thread = document.getElementById('botResponses');
+    const csrf   = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const postUrl = "{% url 'chatbotengine:dynamic_chat_markdown' id=row_id %}";
+
+    function nowHM(){
+      return new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+
+    // 1) Lire l'historique en sécurité
+let initialHistory = [];
+try {
+  initialHistory = JSON.parse('{{ chat_history|default:"[]"|escapejs }}');
+} catch (e) {
+  appendMessage({
+    text: "⚠ Historique illisible (" + e.message + ")",
+    mine: false,
+    meta: nowHM()
+  });
+  initialHistory = [];
+}
+
+// 2) Rejouer si dispo
+if (Array.isArray(initialHistory) && initialHistory.length) {
+  initialHistory.forEach(msg => {
+    try {
+      const role = (msg?.role || "").trim().toLowerCase();
+
+      let ts;
+      if (msg.created_at) {
+        const d = new Date(msg.created_at);
+        const today = new Date();
+        if (
+          d.getDate() === today.getDate() &&
+          d.getMonth() === today.getMonth() &&
+          d.getFullYear() === today.getFullYear()
+        ) {
+          ts = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } else {
+          let dateStr = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+          dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+          ts = dateStr + ', ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+      } else {
+        ts = nowHM();
+      }
+
+      const imageUrls = (msg.image_urls || msg.image_url || []);
+
+      appendMessage({
+        text: (msg.content ?? null),
+        imageUrls,
+        mine: role === "user",
+        meta: ts
+      });
+    } catch (e) {
+      console.error('Erreur rendu message historique', e, msg);
+    }
+  });
+} else {
+  const INTRO = "{{ intro_text|escapejs }}";
+  if (INTRO) appendMessage({ text: INTRO, mine: false });
+}
+
+
+    async function copyRich({ html, text }) {
+      try {
+        if (navigator.clipboard && window.ClipboardItem) {
+          const item = new ClipboardItem({
+            'text/html': new Blob([html || ''], { type: 'text/html' }),
+            'text/plain': new Blob([text || ''], { type: 'text/plain' })
+          });
+          await navigator.clipboard.write([item]);
+          return true;
+        }
+        await navigator.clipboard.writeText(text || '');
+        return true;
+      } catch (e) {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text || '';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+    }
+
+    function makeCopyButton({ rawText, htmlContent }){
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy-btn';
+      btn.title = 'Copier';
+      btn.setAttribute('aria-label', 'Copier');
+      btn.textContent = '📋';
+
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const ok = await copyRich({ html: htmlContent, text: rawText });
+        const prev = btn.textContent;
+        btn.textContent = ok ? '✔' : '✖';
+        setTimeout(() => { btn.textContent = prev; }, 900);
+      });
+      return btn;
+    }
+
+function showToast(message, isError = false) {
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  toast.style.position = 'fixed';
+  toast.style.bottom = '20px';
+  toast.style.left = '50%';
+  toast.style.transform = 'translateX(-50%)';
+  toast.style.background = isError ? '#a33' : '#2e4d44';
+  toast.style.color = 'white';
+  toast.style.padding = '8px 14px';
+  toast.style.borderRadius = '6px';
+  toast.style.fontSize = '13px';
+  toast.style.opacity = '0';
+  toast.style.transition = 'opacity 0.3s ease';
+  toast.style.zIndex = '9999';
+  document.body.appendChild(toast);
+
+  requestAnimationFrame(() => { toast.style.opacity = '1'; });
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 2000);
+}
+
+
+
+
+
+function appendMessage({ text=null, imageUrls=[], mine=false, meta=null, subtle=null }){
+	const wrap = document.createElement('div');
+	wrap.className = 'msg ' + (mine ? 'msg--me' : 'msg--bot');
+
+	const bubble = document.createElement('div');
+	bubble.className = 'msg__bubble';
+
+	// Texte (Markdown pour bot)
+	if (text){
+		if (!mine && window.marked && window.DOMPurify) {
+			const html = marked.parse(text || '');
+			const safeHTML = DOMPurify.sanitize(html);
+			bubble.innerHTML = safeHTML;
+			bubble.appendChild(makeCopyButton({ rawText: text, htmlContent: safeHTML }));
+		} else {
+			bubble.textContent = text;
+		}
+	}
+
+	// Détection plateforme
+	const ua = navigator.userAgent.toLowerCase();
+	const isIOS = /iphone|ipad|ipod/.test(ua);
+	const isAndroid = /android/.test(ua);
+
+	// Images
+	if (imageUrls && imageUrls.length){
+		imageUrls.forEach(url => {
+			const wrapper = document.createElement('div');
+			wrapper.className = 'image-wrapper';
+
+			const img = document.createElement('img');
+			img.src = url;
+			img.alt = "Image générée";
+			img.style.maxWidth = "100%";
+			img.style.borderRadius = "8px";
+			img.style.marginTop = "6px";
+
+			// Gestion expiration
+			img.onerror = () => {
+				wrapper.innerHTML = "<div style='color:#a33;font-style:italic;margin-top:6px;'>Image expirée</div>";
+			};
+
+			wrapper.appendChild(img);
+
+			// Boutons outils uniquement si pas iOS
+			if (!isIOS) {
+				const tools = document.createElement('div');
+				tools.className = 'image-tools';
+				const fileName = "image_mistral.png";
+
+				// Android → Télécharger uniquement
+				if (isAndroid) {
+					tools.innerHTML = `<a href="${url}" download="${fileName}" title="Télécharger">⬇</a>`;
+				} else {
+					// Desktop → Télécharger + Copier
+					tools.innerHTML = `
+						<a href="${url}" download="${fileName}" title="Télécharger">⬇</a>
+						<button type="button" title="Copier">📋</button>
+					`;
+
+					const copyBtn = tools.querySelector('button');
+copyBtn.onclick = async () => {
+  try {
+    // 1) Récupérer l'image depuis TON proxy
+    const resp = await fetch(url, { credentials: 'include' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const blob = await resp.blob();
+
+    // Détection navigateur
+    const ua = navigator.userAgent.toLowerCase();
+    const isSafari = ua.includes("safari") && !ua.includes("chrome") && !ua.includes("android");
+    const isFirefox = ua.includes("firefox");
+
+    if (!isSafari && !isFirefox && navigator.clipboard && window.ClipboardItem) {
+      // ✅ Chrome / Edge → API moderne
+      await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+      showToast('Image copiée !');
+      return;
+    }
+
+    // ✅ Safari (macOS/iOS) & Firefox → fallback execCommand avec <img src="dataURL">
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result); // "data:image/png;base64,..."
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+
+    const sandbox = document.createElement('div');
+    sandbox.contentEditable = 'true';
+    sandbox.style.position = 'fixed';
+    sandbox.style.left = '-99999px';
+    sandbox.style.opacity = '0';
+    document.body.appendChild(sandbox);
+
+    sandbox.innerHTML = `<img src="${dataUrl}" alt="copied">`;
+
+    const range = document.createRange();
+    range.selectNodeContents(sandbox);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    const ok = document.execCommand('copy');
+
+    sel.removeAllRanges();
+    document.body.removeChild(sandbox);
+
+    if (!ok) throw new Error('execCommand(copy) a échoué');
+    showToast('Image copiée !');
+
+  } catch (err) {
+    showToast('Impossible de copier l’image : ' + err, true);
+  }
+};
+
+				}
+
+				wrapper.appendChild(tools);
+			}
+
+			bubble.appendChild(wrapper);
+		});
+	}
+
+	if (meta){
+		const metaEl = document.createElement('div');
+		metaEl.className = 'msg__meta';
+		metaEl.textContent = meta;
+		bubble.appendChild(metaEl);
+	}
+	if (subtle){
+		const note = document.createElement('div');
+		note.className = 'msg__note';
+		note.textContent = subtle;
+		bubble.appendChild(note);
+	}
+
+	wrap.appendChild(bubble);
+	thread.appendChild(wrap);
+	thread.scrollTop = thread.scrollHeight;
+	return wrap;
+}
+
+    function appendTyping(){
+      const wrap = document.createElement('div');
+      wrap.className = 'msg msg--bot typing';
+      const bubble = document.createElement('div');
+      bubble.className = 'msg__bubble';
+      bubble.setAttribute('aria-live','polite');
+      bubble.setAttribute('aria-label','L’IA est en train d’écrire…');
+      bubble.innerHTML = '<span class="typing-dots"><span></span><span></span><span></span></span>';
+      wrap.appendChild(bubble);
+      thread.appendChild(wrap);
+      thread.scrollTop = thread.scrollHeight;
+      return wrap;
+    }
+
+    function setWaiting(isWaiting){
+      input.disabled = isWaiting;
+      const btn = form.querySelector('.send-btn');
+      if (btn) btn.disabled = isWaiting;
+      if (!isWaiting) input.focus();
+    }
+
+
+
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const value = (input.value || '').trim();
+      if (!value) return;
+
+      appendMessage({ text: value, mine: true, meta: nowHM() });
+
+      input.value = '';
+      setWaiting(true);
+
+      const typing = appendTyping();
+
+      fetch(postUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-CSRFToken': csrf
+        },
+        credentials: 'include',
+        body: new URLSearchParams({ prompt: value })
+      })
+      .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(data => {
+        const hasImages = Array.isArray(data.image_urls) && data.image_urls.length > 0;
+        const resp  = data.response || (hasImages ? null : (data.error || 'Réponse vide du modèle.'));
+        
+        // 🧩 Mise à jour de la zone debug (admin uniquement)
+        if (data.ia_structure_info) {
+            const debugEl = document.getElementById("debug-info");
+            if (debugEl) {
+                debugEl.innerHTML = data.ia_structure_info;
+            }
+        }
+
+        
+        const meta  = nowHM();
+
+        const totalTokens = Number(data.total_tokens || 0);
+        const totalCost = (Math.ceil((data.total_cost || 0) * 100) / 100).toFixed(2);
+        const co2Grams = (totalTokens * 0.0015).toFixed(2);
+
+        const subtle = ' Total tokens : ' + totalTokens + ' · Coût : ' + totalCost + ' € · ' + co2Grams + ' g CO₂';
+
+        if (typing && typing.parentNode) typing.remove();
+
+        appendMessage({
+          text: resp,
+          imageUrls: data.image_urls || [],
+          mine: false,
+          meta,
+          subtle
+        });
+        
+        
+// 🧩 Affichage des fichiers générés par l’IA (sous la bulle)
+if (Array.isArray(data.file_urls) && data.file_urls.length > 0) {
+  data.file_urls.forEach(f => {
+
+    // 🔧 Troncature : courte + infobulle
+    let desc = f.description || "Fichier généré par l’IA";
+    const fullDesc = desc;
+    if (desc.length > 20) desc = desc.slice(0, 20) + "…";
+
+    // 🖼️ Choix icône en fonction du type
+    let icon = "";
+
+    switch ((f.type || "").toLowerCase()) {
+      case "docx":
+        icon = `<i class="bi bi-file-earmark-word text-primary file-icon"></i>`;
+        break;
+      case "xlsx":
+        icon = `<i class="bi bi-file-earmark-excel text-success file-icon"></i>`;
+        break;
+      case "txt":
+        icon = `<i class="bi bi-file-earmark-text file-icon"></i>`;
+        break;
+      case "pdf":
+        icon = `<i class="bi bi-file-earmark-pdf text-danger file-icon"></i>`;
+        break;
+      case "pdf":
+        icon = `<i class="bi bi-file-earmark-pdf text-danger file-icon"></i>`;
+        break;
+      case "pptx":
+        icon = `<i class="bi bi-easel text-warning file-icon"></i>`;
+        break;
+      default:
+        icon = `<i class="bi bi-file-earmark file-icon"></i>`;
+    }
+
+    const fileCard = document.createElement("div");
+    fileCard.className = "ai-file-card";
+    fileCard.innerHTML = `
+      ${icon}
+      <div class="file-info">
+        <strong>${f.filename || "Fichier"}</strong><br>
+        <small class="text-muted" title="${fullDesc}">${desc}</small>
+      </div>
+      <a href="${f.url}" download class="download-link">⬇ Télécharger</a>
+    `;
+
+    const lastMsg = thread.querySelector(".msg--bot:last-child");
+    if (lastMsg) {
+      lastMsg.insertAdjacentElement("afterend", fileCard);
+    } else {
+      thread.appendChild(fileCard);
+    }
+  });
+}
+
+
+
+
+
+
+        
+        
+        
+        
+        
+        
+      }) // ✅ fermeture correcte du .then(data => { ... })
+      .catch(async err => {
+        let details = "";
+        try {
+          // Essayer de lire la réponse JSON si disponible
+          if (err.response) {
+            const body = await err.response.json();
+            details = (body.error || "") + "\n" + (body.traceback || "");
+          }
+        } catch (_) {}
+
+        if (typing && typing.parentNode) typing.remove();
+
+        appendMessage({
+          text: 'Erreur : ' + err.message + (details ? "\n" + details : ""),
+          mine: false,
+          meta: nowHM()
+        });
+      })
+      .finally(() => {
+        setWaiting(false);
+      });
+    });
+
+
+{% if agent_enable_file_upload %}
+
+// === Gestion moderne de l'upload de fichiers dans le chat ===
+const uploadBtn = document.getElementById("chat-upload-btn");
+const fileInput = document.getElementById("chat-file-input");
+const filesList = document.getElementById("chat-files-list");
+const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+
+// 1️⃣ Ouvre le sélecteur de fichier
+uploadBtn.addEventListener("click", () => fileInput.click());
+
+// 2️⃣ Lorsqu’un fichier est choisi → upload immédiat
+fileInput.addEventListener("change", async () => {
+  if (!fileInput.files.length) return;
+  const file = fileInput.files[0];
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const row = document.createElement("div");
+  row.textContent = `📄 ${file.name} — En cours de téléchargement...`;
+  filesList.prepend(row);
+
+  try {
+    // 🔗 Envoie du fichier vers Django
+    const resp = await fetch(`/ChatBotEngine/upload/{{ row_id }}/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": csrfToken },
+      body: formData,
+      credentials: "include",
+    });
+
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const result = await resp.json();
+
+    if (!result.success)
+      throw new Error(result.error || "Échec de l’upload");
+
+    // ✅ Affiche le statut initial et lance le suivi
+    const fileId = result.file_id;
+    // const status = result.status || "En traitement...";
+    row.textContent = `📤 ${file.name} — En cours d'indexation...`;
+
+    // 🔁 Vérifie toutes les 2 secondes le statut
+    const poll = setInterval(async () => {
+      try {
+        const s = await fetch(`/ChatBotEngine/file_status/${fileId}/`, { credentials: "include" });
+        if (!s.ok) throw new Error("HTTP " + s.status);
+        const js = await s.json();
+        const st = (js.status || "Inconnu").toLowerCase();
+
+        if (st.includes("completed") || st.includes("succeeded")) {
+          row.textContent = `✅ ${file.name} — Indexé (prêt à l’emploi)`;
+          clearInterval(poll);
+          showToast(`✅ ${file.name} prêt à l’usage`);
+        } else if (st.includes("failed")) {
+          row.textContent = `❌ ${file.name} — Échec du traitement`;
+          clearInterval(poll);
+        } else {
+          row.textContent = `🔄 ${file.name} — En cours d'indexation...`;
+        }
+      } catch (err) {
+        console.warn("Erreur polling:", err);
+      }
+    }, 2000); // vérifie toutes les 2 secondes
+
+  } catch (err) {
+    row.textContent = `❌ ${file.name} — ${err.message}`;
+  } finally {
+    fileInput.value = "";
+  }
+});
+
+
+// === Suppression d’un fichier ===
+filesList.addEventListener("click", async (e) => {
+  const btn = e.target.closest(".delete-file-btn");
+  if (!btn) return;
+
+  const row = btn.closest("div[data-file-id]");
+  const fileId = row.dataset.fileId;
+  const fileName = row.textContent.split("—")[0].trim().replace(/^✅|^❌|^🔄|^📤/, "").trim();
+
+  if (!confirm(`Supprimer ${fileName} ?`)) return;
+
+  try {
+    const resp = await fetch(`/ChatBotEngine/file_remove/${fileId}/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": csrfToken },
+      credentials: "include"
+    });
+    const js = await resp.json();
+
+    if (js.success) {
+      showToast(`🗑 ${fileName} supprimé.`);
+      row.remove();
+    } else {
+      showToast(`Erreur suppression : ${js.error || "inconnue"}`, true);
+    }
+  } catch (err) {
+    showToast(`Erreur réseau : ${err.message}`, true);
+  }
+});
+
+{% endif %}
+
+
+
+});
+</script>
+{% endblock %}

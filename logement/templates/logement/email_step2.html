@@ -1,0 +1,700 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_head %}
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+
+<style>
+    .small-text { font-size: 0.9rem; }
+    .system-box { font-size: 0.8rem; color:#555; }
+
+    .card-box {
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 15px;
+        background: #fafafa;
+    }
+
+    .table-sm td { vertical-align: middle; }
+    .select-status { color: white !important; font-weight: bold; }
+
+    .card-box h5 { margin-left: 0; }
+
+    .message-recu-content {
+        padding-left: 12px;       /* → comme les autres pavés */
+        padding-right: 12px;
+        white-space: pre-wrap;    /* → respecte les retours à la ligne */
+        text-align: left;
+    }
+
+    
+    /* Pavés de gauche avec fond léger */
+    .box-left {
+        background: #f7f7f7;           /* variante A */
+        border: 1px solid #e4e4e4;
+    }
+
+    .message-recu-wrapper {
+        max-height: 250px;       /* hauteur maximale du pavé */
+        overflow-y: auto;        /* affiche un ascenseur vertical si besoin */
+        padding-right: 6px;      /* petit espace pour éviter que le scroll colle au bord */
+    }
+
+
+    /* Réduit l’espace au-dessus du titre */
+    .form-container {
+        padding-top: 0px !important;   /* au lieu de 30px */
+    }
+
+
+    .group-header {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .toggle-icon {
+        transition: transform 0.2s ease;
+    }
+
+    .group-collapsed .toggle-icon {
+        transform: rotate(-90deg);
+    }
+
+    .group-header {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .toggle-icon {
+        display: inline-block;
+        transition: transform 0.2s ease;
+    }
+
+    /* Quand le groupe est replié → flèche tournée */
+    .group-collapsed .toggle-icon {
+        transform: rotate(-90deg);
+    }
+
+
+    <style>
+.select-compact {
+    height: 24px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 6px !important;
+    font-size: 0.85rem !important;
+}
+</style>
+
+
+    
+</style>
+{% endblock %}
+
+
+
+{% block content %}
+
+<h2 class="page-title-tight mb-4">{{ domaine.libelle }}</h2>
+
+
+<form method="post"
+      id="main-form"
+      action="{% if return_url and return_url != 'None' %}
+                  {% url 'logement:email_create_step2' contact_id=contact.id %}?return_url={{ return_url|urlencode }}
+              {% else %}
+                  {% url 'logement:email_create_step2' contact_id=contact.id %}
+              {% endif %}">
+
+
+    {% csrf_token %}
+    
+    {% if return_url %}
+        <input type="hidden" name="return_url" value="{{ return_url }}">
+    {% endif %}
+
+    <div class="row">
+
+        <!-- COLONNE GAUCHE -->
+        <div class="col-md-6">
+
+            <!-- Infos générales -->
+            <div class="card-box small-text box-left">
+                <h5>Message reçu</h5>
+
+                <div class="d-flex justify-content-between">
+                    <strong>Email :</strong>
+                    <span>{{ contact.demandeur.email }}</span>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <strong>Objet :</strong>
+                    <span>{{ contact.objet }}</span>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <strong>Date du mail :</strong>
+                    {{ contact.date|date:"d/m/Y" }}
+                </div>
+                
+                {% if contact.pieces_jointes.all|length %}
+                    <div class="mt-2">
+                        <strong>Pièces jointes :</strong>
+                        <ul class="mb-0">
+                            {% for pj in contact.pieces_jointes.all %}
+                                <li>
+                                    <a href="{% url 'logement:piece_jointe_contact_download' piece_id=pj.id %}">
+                                        {{ pj.nom_original }}
+                                    </a>
+                                    <span class="text-muted">
+                                        {% if pj.taille %} — {{ pj.taille }} octets{% endif %}
+                                        {% if pj.content_type %} ({{ pj.content_type }}){% endif %}
+                                    </span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+
+                <!-- Message reçu -->
+                <div class="d-flex" style="line-height: 1.1; margin-top:10px; align-items:flex-start;">
+    
+                    <!-- Label -->
+                    <strong style="white-space: nowrap; margin-right:8px; margin-top:3px;">
+                        Message :
+                    </strong>
+
+                    <!-- Cadre auto-ajusté -->
+                    <div style="
+                        flex: 1;
+                        border:1px solid #ccc;
+                        background:#fff;
+                        padding:6px 8px;
+                        max-height:300px;
+                        overflow-y:auto;
+                        white-space:pre-wrap;
+                        text-align:left;
+                    ">{{ contact.txtdemande }}</div>
+
+                </div>
+
+
+
+
+            </div>
+
+            <!-- Réponse -->
+            <div class="card-box small-text box-left">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">Réponse</h5>
+
+                    <!-- Évaluation réponse IA -->
+                    <div class="d-flex gap-2 align-items-center"
+                         id="evaluation-reponse"
+                         data-obligatoire="{{ domaine.evaluation_reponse_obligatoire|yesno:'1,0' }}">
+
+                        <span class="small text-muted me-1">Eval. IA :</span>
+
+                        <span class="eval-dot eval-red"
+                              data-value="incorrect"
+                              title="Réponse incorrecte"></span>
+
+                        <span class="eval-dot eval-yellow"
+                              data-value="correct_a_corriger"
+                              title="Correct avec corrections"></span>
+
+                        <span class="eval-dot eval-green"
+                              data-value="parfait"
+                              title="Réponse parfaite"></span>
+                    </div>
+
+                </div>
+                {{ form.evaluation_reponse }}
+
+                {{ form.reponse }}
+            </div>
+
+            <!-- Cartouche système -->
+            <div class="card-box system-box">
+                <em>
+                    Créé le {{ contact.created_at }} /
+                    Modifié le {{ contact.updated_at }}
+                </em>
+            </div>
+
+        </div>
+
+        <!-- COLONNE DROITE -->
+        <div class="col-md-6">
+
+        <!-- Nouveau cadre Informations complémentaires -->
+        <div class="card-box small-text box-left mb-3">
+            <h5>Informations complémentaires</h5>
+
+            <!-- Numéro unique -->
+            <div class="d-flex justify-content-between align-items-center" style="line-height: 1.1;">
+                <strong>Numéro unique :</strong>
+                <div style="width:50%; text-align:right;">
+                    <div style="display:inline-block;">
+                        {{ form.numero_unique }}
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Salutation -->
+            <div class="d-flex justify-content-between" style="line-height: 1.0; margin-top:4px;">
+                <strong>Salutations :</strong>
+                <div class="text-end" style="width: 50%;">
+                    <div style="display: inline-block;">
+                        {{ form.salutation }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statut -->
+                <div class="d-flex justify-content-between" style="line-height: 1.0; margin-top:0px;">
+                    <strong>Statut :</strong>
+                    <div class="text-end" style="width: 50%;">
+                        <div style="display: inline-block;">
+                            {{ form.statut }}
+                        </div>
+                    </div>
+                </div>
+        </div>
+
+
+
+
+            {% if has_multiple_groups %}
+            <table class="table table-sm small-text">
+                <tbody>
+
+                {% for groupe in groups %}
+                    <!-- Groupe -->
+<tr class="table-light group-row
+    {% if is_new_contact %}
+        {% if groupe.collapsed_by_default %}group-collapsed{% endif %}
+    {% else %}
+        {% if groupe.id not in groups_to_expand %}group-collapsed{% endif %}
+    {% endif %}
+"
+data-group-id="{{ groupe.id }}">
+
+    <td colspan="2" class="group-header">
+        <strong>{{ groupe.libelle }}</strong>
+        <span class="toggle-icon ms-2">▼</span>
+    </td>
+</tr>
+
+<tr class="group-content" data-group-id="{{ groupe.id }}">
+    <td colspan="2" style="padding:0;">
+        {% for th in groupe.thematiques.all %}
+        <div class="d-flex align-items-center" style="padding-left:30px;">
+            <input type="checkbox"
+                   class="form-check-input me-2"
+                   name="thematiques"
+                   value="{{ th.id }}"
+                   {% if th.id in selected_ids %}checked{% endif %}>
+            {{ th.libelle_thematique }}
+        </div>
+        {% endfor %}
+    </td>
+</tr>
+
+
+
+                {% endfor %}
+
+                </tbody>
+            </table>
+
+            {% else %}
+            
+            <table class="table table-sm small-text">
+                <tbody>
+
+                {% for groupe in groups %}
+                    {% for th in groupe.thematiques.all %}
+                    <tr>
+                        <td style="width: 30px;">
+                            <input type="checkbox"
+                                   class="form-check-input"
+                                   name="thematiques"
+                                   value="{{ th.id }}"
+                                   {% if th.id in selected_ids %}checked{% endif %}>
+                        </td>
+                        <td>{{ th.libelle_thematique }}</td>
+                    </tr>
+                    {% endfor %}
+                {% endfor %}
+
+                </tbody>
+            </table>
+
+            {% endif %}
+
+
+            <!-- BOUTONS SUR LA LIGNE SUIVANTE -->
+            <div class="d-flex gap-2 mt-2">
+
+                <button type="submit"
+                    id="btn_proposer_reponse"
+                    formaction="{% url 'logement:proposer_reponse' contact_id=contact.id %}?return_url={{ return_url|urlencode }}"
+                    class="btn btn-primary btn-sm">
+
+                Proposer une réponse
+            </button>
+            
+            <style>
+            #btn_proposer_reponse {
+                background-color: #0d6efd !important;
+                border-color: #0d6efd !important;
+            }
+            </style>
+
+                <button type="button" id="btn_mailto" class="btn btn-success btn-sm">
+                    Envoyer le mail
+                </button>
+
+                
+                
+                <style>
+                #btn_mailto {
+                    background-color: #198754 !important;  /* même vert que bg-success (statut 3) */
+                    border-color: #198754 !important;
+                    color: white !important;
+                }
+                </style>
+
+
+
+                
+                
+                <button type="submit" class="btn btn-secondary btn-sm">
+                    Enregistrer
+                </button>
+
+
+                {% if return_url and return_url != "None" %}
+                    <a href="{{ return_url }}" class="btn btn-secondary btn-sm">
+                         ← Retour à l’accueil
+                    </a>
+                {% else %}
+                    <a href="{% url 'home' %}" class="btn btn-secondary btn-sm">
+                         ← Retour à l’accueil
+                    </a>
+                {% endif %}
+
+
+
+
+            </div>
+
+        </div>
+
+    </div>
+</form>
+
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script>
+    // Flags globaux de navigation / modification
+    let formChanged = false;
+    let allowNavigation = false;
+</script>
+
+<script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    var textarea = document.getElementById("id_reponse");
+    if (textarea) {
+        window.simplemde = new SimpleMDE({
+            element: textarea,
+            spellChecker: false,
+            status: false,
+            autosave: { enabled: false }
+        });
+
+    }
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const btnMail = document.getElementById("btn_mailto");
+    const btnIA   = document.getElementById("btn_proposer_reponse");
+    const selectStatut = document.getElementById("id_statut");
+
+    // --- Quand on clique sur "Proposer une réponse"
+    if (btnIA && selectStatut) {
+        btnIA.addEventListener("click", function () {
+            // Exemple : statut = 2 (à adapter si besoin)
+            selectStatut.value = "2";
+        });
+    }
+
+    // --- Quand on clique sur "Envoyer le mail"
+    if (btnMail && selectStatut) {
+        btnMail.addEventListener("click", function () {
+
+            // 🔒 CONTRÔLE OBLIGATION ÉVALUATION IA (UNIQUEMENT ICI)
+            const evalContainer = document.getElementById("evaluation-reponse");
+            const obligatoire = evalContainer?.dataset.obligatoire === "1";
+            const evalInput = document.getElementById("id_evaluation_reponse");
+
+            if (obligatoire && (!evalInput || !evalInput.value)) {
+                alert("Veuillez évaluer la réponse proposée par l’IA avant d’envoyer le mail.");
+                return; // ⛔ bloque uniquement l’envoi du mail
+            }
+
+            allowNavigation = true;
+            formChanged = false;
+
+            // Exemple : statut = 3 (clos)
+            selectStatut.value = "3";
+
+            // Ensuite le code existant pour ouvrir le mailto :
+            const email = "{{ contact.demandeur.email|escapejs }}";
+            const sujet = "Re : {{ contact.objet|escapejs }}";
+
+            let corps = "";
+            const area = document.querySelector("#id_reponse");
+            if (area) corps = area.value;
+
+            const mailtoUrl = "mailto:" + encodeURIComponent(email)
+                + "?subject=" + encodeURIComponent(sujet)
+                + "&body=" + encodeURIComponent(corps);
+
+            window.location.href = mailtoUrl;
+        });
+    }
+
+});
+</script>
+
+
+
+
+<style>
+#loading-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 5000;
+}
+
+.loading-box {
+    background: white;
+    padding: 20px 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+    text-align: center;
+    font-size: 1rem;
+}
+
+.loading-spinner {
+    width: 30px;
+    height: 30px;
+    border: 4px solid #ccc;
+    border-top-color: #28a745;
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+    margin: 0 auto 12px auto;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.eval-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: inline-block;
+    cursor: pointer;
+    opacity: 0.35;
+    transform: scale(1);
+    transition: opacity 0.15s ease,
+                box-shadow 0.15s ease,
+                transform 0.15s ease;
+}
+
+.eval-dot.active {
+    opacity: 1;
+    transform: scale(1.35);
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.15);
+}
+
+
+.eval-red { background-color: #dc3545; }
+.eval-yellow { background-color: #ffc107; }
+.eval-green { background-color: #28a745; }
+
+
+
+</style>
+
+<div id="loading-overlay">
+    <div class="loading-box">
+        <div class="loading-spinner"></div>
+        Veuillez patienter...
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const btnIA = document.getElementById("btn_proposer_reponse");
+    const overlay = document.getElementById("loading-overlay");
+    const form = document.getElementById("main-form");
+
+    if (!btnIA || !overlay || !form) return;
+
+    btnIA.addEventListener("click", function (e) {
+        e.preventDefault();                 // bloque le submit natif
+        
+        allowNavigation = true;
+        formChanged = false;
+
+        
+        
+        overlay.style.display = "flex";      // affiche l'overlay
+
+        setTimeout(function () {
+            // 👉 clé du problème : utiliser la bonne URL !
+            const action = btnIA.getAttribute("formaction");
+            if (action) {
+                form.action = action;
+            }
+            form.submit();                   // soumission vers la bonne vue IA
+        }, 50);
+    });
+});
+</script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    document.querySelectorAll(".group-row").forEach(row => {
+
+        const groupId = row.dataset.groupId;
+        const content = document.querySelector(
+            `.group-content[data-group-id='${groupId}']`
+        );
+
+        if (!content) return;
+
+        const collapsed = row.classList.contains("group-collapsed");
+        content.style.display = collapsed ? "none" : "table-row";
+
+        row.addEventListener("click", function () {
+            const isCollapsed = row.classList.toggle("group-collapsed");
+            content.style.display = isCollapsed ? "none" : "table-row";
+        });
+    });
+
+});
+
+</script>
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const form = document.getElementById("main-form");
+    const btnIA = document.getElementById("btn_proposer_reponse");
+    const btnMail = document.getElementById("btn_mailto");
+
+
+    if (!form) return;
+
+    // --- Marquer le formulaire comme modifié (input réel)
+    form.querySelectorAll("input, select, textarea").forEach(el => {
+        el.addEventListener("input", () => formChanged = true);
+        el.addEventListener("change", () => formChanged = true);
+    });
+
+    // --- SimpleMDE
+    if (window.simplemde && simplemde.codemirror) {
+        simplemde.codemirror.on("change", function () {
+            formChanged = true;
+        });
+    }
+
+    // --- Soumission volontaire du formulaire
+    form.addEventListener("submit", function () {
+        allowNavigation = true;
+        formChanged = false;
+    });
+
+
+
+    // --- Avertissement navigateur
+    window.addEventListener("beforeunload", function (e) {
+        if (!formChanged || allowNavigation) return;
+
+        e.preventDefault();
+        e.returnValue = "";
+    });
+
+});
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+    const dots = document.querySelectorAll(".eval-dot");
+    const input = document.getElementById("id_evaluation_reponse");
+
+    if (!dots.length || !input) return;
+
+    // Initialisation si valeur existante
+    if (input.value) {
+        dots.forEach(d => {
+            if (d.dataset.value === input.value) {
+                d.classList.add("active");
+            }
+        });
+    }
+
+    dots.forEach(dot => {
+        dot.addEventListener("click", function () {
+
+            // 👉 cas 1 : clic sur le feu déjà actif → désélection
+            if (dot.classList.contains("active")) {
+                dot.classList.remove("active");
+                input.value = "";
+                return;
+            }
+
+            // 👉 cas 2 : clic sur un autre feu → sélection
+            dots.forEach(d => d.classList.remove("active"));
+            dot.classList.add("active");
+            input.value = dot.dataset.value;
+        });
+    });
+});
+
+
+</script>
+
+
+
+
+{% endblock %}

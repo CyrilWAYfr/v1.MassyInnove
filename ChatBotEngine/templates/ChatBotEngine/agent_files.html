@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Fichiers de l’agent — {{ agent.title }}{% endblock %}
+
+{% block content %}
+
+  
+  <!-- Titre + bouton retour paramètres -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="mb-0">
+      Fichiers de l’agent <small class="text-muted">« {{ agent.title }} »</small>
+    </h1>
+    <a href="{% url 'chatbotengine:update_chatbot' agent.id %}"
+       class="btn btn-sm btn-outline-secondary">
+      ← Paramètres de l’agent
+    </a>
+  </div>
+
+  {# État de la librairie Mistral de l’agent #}
+  <div class="alert alert-info d-flex align-items-center gap-2" role="alert">
+    <span class="me-2">📚</span>
+    <div>
+      {% if agent.mistral_library_id %}
+        Identification interne de la Librairie Mistral : <code>{{ agent.mistral_library_id }}</code><br>
+      {% else %}
+        Aucune librairie Mistral n’est encore créée pour cet agent.<br>
+        Elle sera <strong>créée automatiquement</strong> lors du premier ajout de fichier.
+      {% endif %}
+    </div>
+  </div>
+
+  {# FICHIERS DÉJÀ LIÉS À L’AGENT #}
+  <div class="card mb-4">
+    <div class="card-header">
+      <strong>Fichiers déjà liés à l’agent</strong>
+      <span class="badge bg-secondary ms-2">{{ links|length }}</span>
+    </div>
+    <div class="card-body p-0">
+      {% if links %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Nom</th>
+                <th>Statut</th>
+                <th class="text-nowrap">ID doc Mistral</th>
+                <th class="text-nowrap">Ajouté par</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for link in links %}
+              {% with f=link.file %}
+              <tr>
+                <td class="text-break">
+                  {% firstof f.original_name f.name %}
+                </td>
+                <td>
+                  {% if f.processing_status == "Completed" or f.processing_status == "Succeeded" %}
+                    <span class="badge bg-success">Indexé</span>
+                  {% else %}
+                    <span class="badge bg-warning text-dark">{{ f.processing_status|default:"—" }}</span>
+                  {% endif %}
+                </td>
+                <td class="font-monospace small text-break">
+                  {{ f.mistral_document_id|default:"—" }}
+                </td>
+                <td class="text-nowrap">
+                  {{ link.added_by|default:"—" }}
+                </td>
+                <td class="text-end">
+                  <form method="post" action="{% url 'chatbotengine:agent_files_remove' link.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                      Retirer
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endwith %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="p-3">
+          <em>Aucun fichier n’est encore lié à cet agent.</em>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# UPLOAD UNITAIRE POUR LA LIBRAIRIE DE L'AGENT #}
+<div class="card">
+  <div class="card-header">
+    <strong>Ajouter un fichier à la librairie de l’agent</strong>
+  </div>
+  <div class="card-body">
+    <p class="text-muted small mb-3">
+      Le fichier sera <strong>envoyé directement</strong> dans la librairie Mistral de l’agent
+      (créée automatiquement si besoin).
+    </p>
+
+    <form method="post" action="{% url 'chatbotengine:agent_files_upload' agent.id %}" enctype="multipart/form-data" class="d-flex gap-2 flex-wrap align-items-center">
+      {% csrf_token %}
+      <input type="file" name="file" class="form-control" style="max-width:420px" required>
+      <button type="submit" class="btn btn-primary">Uploader</button>
+    </form>
+
+    <div class="form-text mt-2">
+      Formats usuels acceptés (PDF, DOCX, PPTX, XLSX, TXT…). L’indexation peut prendre quelques minutes.
+    </div>
+  </div>
+</div>
+
+  
+</div>
+{% endblock %}

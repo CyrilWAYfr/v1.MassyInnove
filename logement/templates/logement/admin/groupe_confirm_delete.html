@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Supprimer ce groupe ?</h1>
+
+<div class="alert alert-warning">
+    <p>Vous allez supprimer le groupe : <strong>{{ groupe.libelle }}</strong></p>
+    <p>Cela supprimera également son rattachement aux thématiques.</p>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <button class="btn btn-danger">Supprimer</button>
+    <a href="{% url 'logement:groupes_list' %}" class="btn btn-secondary">Annuler</a>
+</form>
+
+{% endblock %}

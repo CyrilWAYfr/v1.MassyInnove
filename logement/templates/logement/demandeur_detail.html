@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block page_title %}
+<h2>Fiche demandeur</h2>
+{% endblock %}
+
+
+{% block extra_head %}
+<style>
+.status-new  { background-color: #e9ecef !important; font-weight: 600; }
+.status-ia   { background-color: #cfe2ff !important; font-weight: 600; }
+.status-mail { background-color: #d1e7dd !important; font-weight: 600; }
+
+.table td, .table th { vertical-align: middle !important; }
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="card mb-4 p-3">
+    <h4 class="mb-3">Informations du demandeur</h4>
+
+    <div class="row mb-2">
+        <div class="col-md-6">
+            <strong>Email :</strong> {{ demandeur.email }}
+        </div>
+        <div class="col-md-6">
+            <strong>Numéro unique :</strong> {{ demandeur.num_unique|default:"—" }}
+        </div>
+    </div>
+</div>
+
+
+<h4 class="mt-4">Historique des contacts</h4>
+
+{% if history %}
+<table class="table table-sm table-bordered mt-2">
+    <thead class="table-light">
+        <tr>
+            <th class="text-center">Statut</th>
+            <th class="text-center">Canal</th>
+            <th class="text-center">Date</th>
+            <th>Objet</th>
+            <th>Message</th>
+            <th>Thématiques</th>
+            <th class="text-center">Action</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for c in history %}
+        <tr class="
+            {% if c.statut_id == 1 %}status-new{% endif %}
+            {% if c.statut_id == 2 %}status-ia{% endif %}
+            {% if c.statut_id == 3 %}status-mail{% endif %}
+        ">
+            <td class="text-center">{{ c.statut }}</td>
+            <td class="text-center">{{ c.canal }}</td>
+            <td class="text-center">{{ c.date }}</td>
+
+            <td>{{ c.objet }}</td>
+
+            <td>
+                {% if c.truncated %}
+                    {{ c.txt_short }}
+                    <a href="#" onclick="showFullText(`{{ c.txt_full|escapejs }}`); return false;">etc.</a>
+                {% else %}
+                    {{ c.txt_short }}
+                {% endif %}
+            </td>
+
+            <td>{{ c.thematiques }}</td>
+
+            <td class="text-center">
+                <a href="{% url 'logement:email_create_step2' c.id %}{% if return_url %}?return_url={{ return_url|urlencode }}{% endif %}"
+                   class="btn btn-sm btn-primary">
+                    Ouvrir
+                </a>
+
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% else %}
+<div class="alert alert-info mt-2">Aucun contact enregistré pour ce demandeur.</div>
+{% endif %}
+
+
+<div class="mb-3 d-flex gap-2">
+
+    <!-- Bouton Modifier -->
+    <a href="{% url 'logement:demandeur_edit' demandeur.id %}"
+       class="btn btn-primary btn-sm">
+        Modifier le demandeur
+    </a>
+    
+    
+    <!-- Retour accueil  -->
+    {% if return_url %}
+        <a href="{{ return_url }}" class="btn btn-secondary btn-sm">
+            ← Retour
+        </a>
+    {% else %}
+        <a href="{% url 'home' %}" class="btn btn-secondary btn-sm">
+            ← Retour à l’accueil
+        </a>
+    {% endif %}
+
+
+</div>
+
+
+
+<!-- Modal affichage texte complet -->
+<div class="modal fade" id="fullTextModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Message complet</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="modal-full-text" style="white-space:pre-wrap;"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+function showFullText(txt) {
+    document.getElementById("modal-full-text").textContent = txt;
+    const modal = new bootstrap.Modal(document.getElementById("fullTextModal"));
+    modal.show();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Administration — Tableau de bord{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h1 class="mb-4">⚙️ Administration — Tableau de bord</h1>
+
+  <p class="text-muted mb-4">
+    Accès centralisé à toutes les sections d'administration internes de la plateforme.
+  </p>
+
+  {# Section CORE #}
+  <h4 class="mb-3 mt-5 text-uppercase text-primary">Core</h4>
+  <div class="list-group shadow-sm mb-4">
+    <a href="{% url 'core:admin_mistral_agents' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+      <span><i class="fas fa-robot mr-2"></i> Gestion des agents "temporaires" (utilisateurs ?) Mistral</span>
+      <i class="fas fa-chevron-right text-muted"></i>
+    </a>
+  </div>
+
+  {# Section CHATBOT ENGINE #}
+  <h4 class="mb-3 mt-5 text-uppercase text-primary">Chatbot</h4>
+  <div class="list-group shadow-sm mb-4">
+    <a href="{% url 'chatbotengine:mistral_agents_admin' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+      <span><i class="fas fa-brain mr-2"></i> Gestion des agents "persistants" Mistral</span>
+      <i class="fas fa-chevron-right text-muted"></i>
+    </a>
+
+    <a href="{% url 'chatbotengine:mistral_docs_admin' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+      <span><i class="fas fa-file-alt mr-2"></i> Gestion des documents Mistral</span>
+      <i class="fas fa-chevron-right text-muted"></i>
+    </a>
+
+    <a href="{% url 'chatbotengine:admin_list_libraries' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+      <span><i class="fas fa-folder-open mr-2"></i> Gestion des librairies Mistral</span>
+      <i class="fas fa-chevron-right text-muted"></i>
+    </a>
+  </div>
+
+  {# Section placeholder pour autres apps à venir #}
+  <h4 class="mb-3 mt-5 text-uppercase text-secondary">Autres modules (à venir)</h4>
+  <p class="text-muted">Les pages d'administration des autres applications seront ajoutées ici prochainement.</p>
+</div>
+{% endblock %}

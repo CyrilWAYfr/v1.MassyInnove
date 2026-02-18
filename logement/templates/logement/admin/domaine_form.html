@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>{{ action }}</h1>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="mb-3">
+        <label class="form-label">Libellé</label>
+        {{ form.libelle }}
+    </div>
+
+    <div class="mb-3">
+    <label class="form-label">Ordre</label>
+        {{ form.ordre }}
+    </div>
+
+        <!-- Domaine public -->
+        <div class="mb-4 p-3 border rounded bg-light">
+            <div class="form-check">
+                {{ form.is_public }}
+                <label class="form-check-label fw-semibold">
+                    Domaine public
+                </label>
+            </div>
+
+            <div class="form-text mt-2">
+                <strong>Domaine public :</strong><br>
+                Tous les utilisateurs de la plateforme pourront :
+                <ul class="mb-1">
+                    <li>traiter des emails entrants</li>
+                    <li>consulter les contacts</li>
+                    <li>voir les demandeurs associés</li>
+                </ul>
+                <span class="text-muted">
+                    ⚠️ Aucun droit d’administration n’est accordé automatiquement.
+                </span>
+            </div>
+        </div>
+
+
+    <div class="mb-3">
+        <label class="form-label">Agent Mistral</label>
+        {{ form.agent }}
+        {% if form.agent.help_text %}
+            <div class="form-text">
+                {{ form.agent.help_text }}
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- Évaluation de la réponse IA -->
+    <div class="mb-4 p-3 border rounded bg-light">
+        <div class="form-check">
+            {{ form.evaluation_reponse_obligatoire }}
+            <label class="form-check-label fw-semibold"
+                   for="{{ form.evaluation_reponse_obligatoire.id_for_label }}">
+                Évaluation de la réponse IA obligatoire
+            </label>
+        </div>
+
+        <div class="form-text mt-2">
+            Si cette option est activée, l’utilisateur devra obligatoirement
+            évaluer la réponse proposée par l’IA lors de la qualification
+            d’un mail entrant.
+        </div>
+    </div>
+
+
+
+    <div class="mb-3">
+        <label class="form-label">Intro des emails</label>
+        {{ form.intro }}
+        <div class="form-text">
+            Ce texte sera ajouté automatiquement au début des réponses envoyées aux usagers.
+        </div>
+    </div>
+
+
+    <div class="mb-3">
+        <label class="form-label">Signature des emails</label>
+        {{ form.signature }}
+        <div class="form-text">
+            Cette signature sera ajoutée automatiquement à la fin des réponses envoyées aux usagers.
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-success">Enregistrer</button>
+    <a href="{% url 'logement:domaines_list' %}" class="btn btn-secondary">Annuler</a>
+</form>
+
+{% endblock %}

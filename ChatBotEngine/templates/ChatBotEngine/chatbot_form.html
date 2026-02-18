@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ form.instance.pk|yesno:"Modifier un chatbot,Créer un chatbot" }}{% endblock %}
+
+{% block page_title %}
+  <h1 class="main-title">
+    {{ form.instance.pk|yesno:"Modifier un chatbot,Créer un chatbot" }}
+  </h1>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <!-- Champs principaux -->
+    <div class="form-group mb-3">
+      <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+      {{ form.title }}
+    </div>
+
+    <div class="form-group mb-3">
+      <label for="{{ form.intro_text.id_for_label }}">{{ form.intro_text.label }}</label>
+      {{ form.intro_text }}
+    </div>
+
+    <div class="form-group mb-3">
+      <label for="{{ form.content.id_for_label }}">{{ form.content.label }}</label>
+      {{ form.content }}
+    </div>
+    
+    <!-- Capacités de l'agent -->
+    <fieldset class="border p-3 mt-4">
+      <legend class="w-auto px-2">Capacités activées</legend>
+
+      <div class="form-check mt-2">
+        {{ form.enable_image_tool }}
+        <label for="{{ form.enable_image_tool.id_for_label }}" class="form-check-label">
+          {{ form.enable_image_tool.label }}
+        </label>
+      </div>
+
+      <div class="form-check mt-2">
+        {{ form.enable_web_search }}
+        <label for="{{ form.enable_web_search.id_for_label }}" class="form-check-label">
+          {{ form.enable_web_search.label }}
+        </label>
+      </div>
+
+      <div class="form-check mt-2">
+        {{ form.enable_file_upload }}
+        <label for="{{ form.enable_file_upload.id_for_label }}" class="form-check-label">
+          {{ form.enable_file_upload.label }}
+        </label>
+        <p class="form-text text-muted small">
+          Si activé, les utilisateurs pourront joindre leurs propres fichiers dans leurs conversations avec cet agent.
+        </p>
+      </div>
+    </fieldset>
+
+    <!-- Fichiers fixes (ressources de l’agent) -->
+    <fieldset class="border p-3 mt-4">
+      <legend class="w-auto px-2">Fichiers rattachés</legend>
+      <p class="text-muted small">
+        Ces fichiers sont ajoutés comme ressources permanentes de l’agent et seront utilisés
+        dans toutes ses conversations. 
+      </p>
+
+      {% if form.instance.pk %}
+        <a href="{% url 'chatbotengine:agent_files' form.instance.pk %}" 
+           class="btn btn-outline-primary btn-sm">
+          Gérer les fichiers de l’agent
+        </a>
+      {% else %}
+        <p class="text-muted mb-2">L’agent n’est pas encore enregistré.</p>
+        <!-- Ce bouton sauve le formulaire PUIS redirige vers la page de gestion des fichiers -->
+        <button type="submit" name="save_and_manage_files" value="1" class="btn btn-outline-primary btn-sm">
+          Enregistrer et gérer les fichiers
+        </button>
+      {% endif %}
+    </fieldset>
+
+{# --- Identifiants Mistral (affichés uniquement en édition) --- #}
+{% if form.instance.pk %}
+  <fieldset class="border p-3 mt-4">
+    <legend class="w-auto px-2">Identifiants Mistral</legend>
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label mb-1">Agent ID</label>
+        <div class="input-group">
+          <input type="text" class="form-control font-monospace" 
+                 value="{{ form.instance.mistral_agent_id|default:'—' }}" readonly>
+          <button type="button" class="btn btn-outline-secondary"
+                  onclick="copyText('{{ form.instance.mistral_agent_id|default:'' }}', this)">
+            Copier
+          </button>
+        </div>
+        <div class="form-text">Identifiant de l’agent chez Mistral.</div>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label mb-1">Library ID</label>
+        <div class="input-group">
+          <input type="text" class="form-control font-monospace" 
+                 value="{{ form.instance.mistral_library_id|default:'—' }}" readonly>
+          <button type="button" class="btn btn-outline-secondary"
+                  onclick="copyText('{{ form.instance.mistral_library_id|default:'' }}', this)">
+            Copier
+          </button>
+        </div>
+        <div class="form-text">Identifiant de la librairie documentaire (si existante).</div>
+      </div>
+    </div>
+
+    {% if form.instance.pk and form.instance.mistral_library_id %}
+      <div class="mt-3">
+        <a href="{% url 'chatbotengine:agent_files' form.instance.pk %}" class="btn btn-sm btn-outline-primary">
+          Gérer les fichiers de l’agent
+        </a>
+      </div>
+    {% endif %}
+  </fieldset>
+{% endif %}
+
+
+
+    <!-- Paramètres de partage -->
+    <fieldset class="border p-3 mt-4">
+      <legend class="w-auto px-2">Partage</legend>
+
+      <div class="form-group mb-3">
+        <label for="{{ form.sharing_rule.id_for_label }}">{{ form.sharing_rule.label }}</label>
+        {{ form.sharing_rule }}
+      </div>
+
+      <div id="shared-with-block" class="form-group mb-3">
+        {{ form.shared_with }}
+      </div>
+    </fieldset>
+
+    <!-- Paramètres avancés -->
+    <fieldset class="border p-3 mt-4">
+      <legend class="w-auto px-2">Paramètres avancés</legend>
+      <p class="text-muted small">⚠️ Ces réglages sont destinés aux utilisateurs avancés.  
+      Si vous n’êtes pas sûr, laissez les valeurs par défaut.</p>
+
+      <div class="form-group mb-3">
+        <label for="{{ form.mistral_model.id_for_label }}">{{ form.mistral_model.label }}</label>
+        {{ form.mistral_model }}
+      </div>
+
+      <div class="form-group mb-3">
+        <label for="{{ form.temperature.id_for_label }}">{{ form.temperature.label }}</label>
+        {{ form.temperature }}
+      </div>
+
+      <div class="form-group mb-3">
+        <label for="{{ form.top_p.id_for_label }}">{{ form.top_p.label }}</label>
+        {{ form.top_p }}
+      </div>
+    </fieldset>
+
+    <div class="mt-3 d-flex gap-2">
+      <button type="submit" class="btn btn-success">Enregistrer</button>
+      <a href="{% url 'chatbotengine:chatbot_list' %}" class="btn btn-secondary">Annuler</a>
+    </div>
+  </form>
+</div>
+
+<!-- Scripts nécessaires pour le widget FilteredSelectMultiple -->
+<link rel="stylesheet" href="{% static 'admin/css/widgets.css' %}">
+<script src="{% static 'admin/js/core.js' %}"></script>
+<script src="{% static 'admin/js/SelectBox.js' %}"></script>
+<script src="{% url 'admin:jsi18n' %}"></script>
+<script src="{% static 'admin/js/SelectFilter2.js' %}"></script>
+
+<!-- Script pour la logique de partage -->
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const sharingSelect = document.getElementById("id_sharing_rule");
+    const sharedBlock = document.getElementById("shared-with-block");
+
+    function toggleSharedBlock() {
+      if (sharingSelect.value === "custom") {
+        sharedBlock.style.display = "block";
+      } else {
+        sharedBlock.style.display = "none";
+      }
+    }
+
+    toggleSharedBlock();
+    sharingSelect.addEventListener("change", toggleSharedBlock);
+
+    // Personnalisation du widget admin après initialisation
+    setTimeout(function() {
+      const availableTitle = document.querySelector(".selector .selector-available h2");
+      if (availableTitle) availableTitle.remove();
+
+      const chosenTitle = document.querySelector(".selector .selector-chosen h2");
+      if (chosenTitle) chosenTitle.textContent = "Partager avec...";
+    }, 200);
+  });
+</script>
+
+<!-- Surcharge CSS -->
+<style>
+  .selector .selector-filter { display: none !important; }
+  .selector .selector-chooseall,
+  .selector .selector-clearall { display: none !important; }
+  .selector h2 {
+    font-size: 0.9rem !important;
+    margin: 4px 0 !important;
+    font-weight: 600 !important;
+    background: none !important;
+    color: #333 !important;
+    padding: 2px 4px !important;
+  }
+  .selector select { font-size: 0.85rem !important; }
+</style>
+{% endblock %}
+
+<script>
+function copyText(txt, btn){
+  if(!txt){ return; }
+  navigator.clipboard.writeText(txt).then(function(){
+    const old = btn.innerHTML;
+    btn.innerHTML = "Copié ✓";
+    setTimeout(() => btn.innerHTML = old, 1200);
+  });
+}
+</script>
+

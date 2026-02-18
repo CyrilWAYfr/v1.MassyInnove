@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Admin — Agents Mistral{% endblock %}
+
+{% block content %}
+<div class="container-xxl mt-4">
+  <h1 class="h3 mb-3">Agents Mistral — Administration</h1>
+
+  <!-- Filtres -->
+  <form method="get" class="row g-2 mb-3">
+    <div class="col-auto">
+      <input type="text" name="q" value="{{ q }}" class="form-control"
+             placeholder="Recherche (id, nom, modèle, agent backend, owner)…">
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-primary">Filtrer</button>
+      {% if q %}
+      <a class="btn btn-outline-secondary" href="?">Réinitialiser</a>
+      {% endif %}
+    </div>
+  </form>
+
+  <!-- Stats -->
+  <div class="d-flex align-items-center gap-3 mb-2">
+    <span class="badge bg-secondary">Total : {{ total }}</span>
+    <span class="badge bg-success">Liés au backend : {{ total_linked }}</span>
+  </div>
+
+  <!-- Tableau -->
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr>
+          <!-- Nom -->
+          <th>
+            {% if sort == "name" %}
+              <a href="?sort=-name{% if q %}&q={{ q|urlencode }}{% endif %}">Nom ▲</a>
+            {% elif sort == "-name" %}
+              <a href="?sort=name{% if q %}&q={{ q|urlencode }}{% endif %}">Nom ▼</a>
+            {% else %}
+              <a href="?sort=name{% if q %}&q={{ q|urlencode }}{% endif %}">Nom</a>
+            {% endif %}
+          </th>
+
+          <!-- Action (suppression distante) -->
+          <th class="text-end" style="white-space:nowrap;">Action</th>
+
+          <!-- Modèle -->
+          <th>
+            {% if sort == "model" %}
+              <a href="?sort=-model{% if q %}&q={{ q|urlencode }}{% endif %}">Modèle ▲</a>
+            {% elif sort == "-model" %}
+              <a href="?sort=model{% if q %}&q={{ q|urlencode }}{% endif %}">Modèle ▼</a>
+            {% else %}
+              <a href="?sort=model{% if q %}&q={{ q|urlencode }}{% endif %}">Modèle</a>
+            {% endif %}
+          </th>
+
+          <!-- Description -->
+          <th>Description</th>
+
+          <!-- Lien backend -->
+          <th>
+            {% if sort == "linked" %}
+              <a href="?sort=-linked{% if q %}&q={{ q|urlencode }}{% endif %}">Lien backend ▲</a>
+            {% elif sort == "-linked" %}
+              <a href="?sort=linked{% if q %}&q={{ q|urlencode }}{% endif %}">Lien backend ▼</a>
+            {% else %}
+              <a href="?sort=-linked{% if q %}&q={{ q|urlencode }}{% endif %}">Lien backend</a>
+            {% endif %}
+          </th>
+
+          <!-- Agent backend -->
+          <th>Agent backend</th>
+
+          <!-- Owner -->
+          <th>Owner</th>
+
+          <!-- Créé -->
+          <th>
+            {% if sort == "created_at" %}
+              <a href="?sort=-created_at{% if q %}&q={{ q|urlencode }}{% endif %}">Créé ▲</a>
+            {% elif sort == "-created_at" %}
+              <a href="?sort=created_at{% if q %}&q={{ q|urlencode }}{% endif %}">Créé ▼</a>
+            {% else %}
+              <a href="?sort=created_at{% if q %}&q={{ q|urlencode }}{% endif %}">Créé</a>
+            {% endif %}
+          </th>
+
+          <!-- ID Mistral -->
+          <th style="white-space:nowrap;">ID Mistral</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for r in rows %}
+        <tr class="{% if r.linked %}table-success{% endif %}">
+          <!-- Nom -->
+          <td>{{ r.name|default:"—" }}</td>
+
+          <!-- ACTION: suppression côté Mistral -->
+          <td class="text-end" style="white-space:nowrap;">
+            <form method="post"
+                  action="{% url 'chatbotengine:mistral_agent_delete' %}"
+                  onsubmit="return confirm('Supprimer cet agent côté Mistral ?');"
+                  class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="agent_id" value="{{ r.id }}">
+              <button type="submit" class="btn btn-sm btn-outline-danger"
+                      {% if r.linked %}title="Attention : des agents backend sont liés ; ils seront recréés à l’usage."{% endif %}>
+                Supprimer
+              </button>
+            </form>
+          </td>
+
+          <!-- Modèle -->
+          <td><code>{{ r.model|default:"" }}</code></td>
+
+          <!-- Description (seule colonne tronquée si trop longue) -->
+          <td class="text-truncate" style="max-width: 520px;">{{ r.description|default:"" }}</td>
+
+          <!-- Lien backend -->
+          <td>
+            {% if r.linked %}
+              <span class="badge bg-success">Lié</span>
+            {% else %}
+              <span class="badge bg-secondary">Non lié</span>
+            {% endif %}
+          </td>
+
+          <!-- Agent backend -->
+          <td>
+            {% if r.backend_id %}
+              <a href="{% url 'chatbotengine:update_chatbot' r.backend_id %}">
+                {{ r.backend_title|default:"(sans titre)" }}
+              </a>
+            {% else %}—{% endif %}
+          </td>
+
+          <!-- Owner -->
+          <td>{{ r.owner_email|default:"" }}</td>
+
+          <!-- Créé -->
+          <td><small class="text-muted">{{ r.created_at|default:"" }}</small></td>
+
+          <!-- ID Mistral : non wrap + police un peu plus lisible -->
+          <td style="white-space:nowrap;"><code style="font-size:.95rem">{{ r.id }}</code></td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9" class="text-center text-muted py-4">Aucun agent trouvé.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <p class="text-muted small mt-2">
+    Astuce : la page est affichée en largeur “xxl”. Seule la colonne <em>Description</em> est tronquée si nécessaire.
+  </p>
+</div>
+
+<style>
+  /* Largeur confortable et ID non tronqué */
+  .table-responsive { overflow-x: auto; }
+  td.text-truncate { max-width: 520px !important; }
+  td[style*="white-space:nowrap"], th[style*="white-space:nowrap"] { white-space: nowrap; }
+</style>
+{% endblock %}

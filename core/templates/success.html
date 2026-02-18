@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Demande soumise avec succès</h2>
+<p>Votre demande d'inscription a été envoyée. Vous recevrez un email une fois votre compte validé par un administrateur.</p>
+<a href="{% url 'account_login' %}">Retour à la page de connexion</a>
+{% endblock %}

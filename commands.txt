@@ -1,0 +1,8 @@
+Activer l'environnement :
+
+
+CREATE DATABASE massy_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'massy'@'localhost' IDENTIFIED BY 'apC2509+12345679!';
+GRANT ALL PRIVILEGES ON massy_dev.* TO 'massy'@'localhost';
+FLUSH PRIVILEGES;
+

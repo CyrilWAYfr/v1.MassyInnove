@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Mes agents IA{% endblock %}
+
+{% block page_title %}
+  <h1 class="main-title">Agents IA</h1>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <!-- Mes agents IA -->
+  <h2 class="h4 mt-4">Mes agents IA</h2>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>Intro</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for bot in my_agents %}
+      <tr>
+        <td>{{ bot.title }}</td>
+        <td>{{ bot.intro_text|truncatechars:120 }}</td>
+        <td>
+          <div class="d-flex justify-content-end gap-2">
+            <a href="{% url 'chatbotengine:open_chat' bot.id %}" class="btn btn-sm btn-primary">Utiliser</a>
+            <a href="{% url 'chatbotengine:update_chatbot' bot.id %}" class="btn btn-sm btn-secondary">Modifier</a>
+            <a href="{% url 'chatbotengine:delete_chatbot' bot.id %}" class="btn btn-sm btn-danger">Supprimer</a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="3">Vous n’avez créé aucun agent IA.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Bouton création en bas à gauche -->
+  <div class="mt-2">
+    <a href="{% url 'chatbotengine:create_chatbot' %}" class="btn btn-sm btn-success">
+      Créer un nouvel agent IA
+    </a>
+  </div>
+
+  <!-- Agents partagés avec moi -->
+  <h2 class="h4 mt-5">Agents IA partagés avec moi</h2>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>Intro</th>
+        <th>Créateur</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for bot in shared_agents %}
+      <tr>
+        <td>{{ bot.title }}</td>
+        <td>{{ bot.intro_text|truncatechars:120 }}</td>
+        <td>{{ bot.owner.email }}</td>
+        <td>
+          <div class="d-flex justify-content-end">
+            <a href="{% url 'chatbotengine:dynamic_chat_markdown' bot.id %}" class="btn btn-sm btn-primary">Utiliser</a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4">Aucun agent IA partagé avec vous.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</div>
+{% endblock %}

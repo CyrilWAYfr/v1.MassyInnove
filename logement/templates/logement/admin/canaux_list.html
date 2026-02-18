@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Gestion des Canaux</h1>
+
+<a href="{% url 'logement:canal_create' %}" class="btn btn-primary mb-3">Ajouter un canal</a>
+
+<table class="table">
+    <tr><th>Libellé</th><th></th></tr>
+    {% for canal in canaux %}
+    <tr>
+        <td>{{ canal.libelle }}</td>
+        <td>
+            <a href="{% url 'logement:canal_edit' canal.id %}">Modifier</a> |
+            <a href="{% url 'logement:canal_delete' canal.id %}">Supprimer</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div class="mt-4">
+    <a href="{% url 'logement:dashboard' %}" class="btn btn-secondary">
+        ← Retour à l’accueil Logement
+    </a>
+</div>
+{% endblock %}

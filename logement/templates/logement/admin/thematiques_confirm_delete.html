@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Supprimer cette thématique ?</h1>
+
+<div class="alert alert-warning">
+
+    <p>
+        Vous êtes sur le point de supprimer la thématique :
+        <strong>{{ thematique.libelle_thematique }}</strong>
+    </p>
+
+    {% if thematique.children.exists %}
+        <p class="text-danger fw-bold">
+            ⚠ Cette thématique possède des sous-thématiques.
+            Elles seront orphelines si vous supprimez celle-ci.
+        </p>
+    {% endif %}
+
+    <p>
+        Cette action est irréversible.
+    </p>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <button class="btn btn-danger">Supprimer</button>
+    <a href="{% url 'logement:thematique_list' %}" class="btn btn-secondary">Annuler</a>
+</form>
+
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Supprimer un chatbot{% endblock %}
+
+{% block page_title %}
+  <h1 class="main-title">Supprimer le chatbot</h1>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="alert alert-warning">
+    <p>Êtes-vous sûr de vouloir supprimer le chatbot <strong>{{ chatbot.title }}</strong> ?</p>
+    <p class="mb-0">Cette action est irréversible.</p>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Oui, supprimer</button>
+    <a href="{% url 'chatbotengine:chatbot_list' %}" class="btn btn-secondary">Annuler</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+
+{% block head_title %}{% trans "Inscription" %}{% endblock %}
+{% block page_heading %}{% trans "Inscription" %}{% endblock %}
+
+{% block account_content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6 col-md-8">
+    <p class="text-muted">
+      {% trans "Déjà un compte ?" %} <a href="{% url 'account_login' %}">{% trans "Connectez-vous" %}</a>.
+    </p>
+
+    <form method="post" action="{% url 'account_signup' %}">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      {% for field in form %}
+        <div class="form-group">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+          {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+      {% endfor %}
+
+      <div class="alert alert-info small mt-3">
+        <strong>Pour bien recevoir les emails en provenance de Massy-Innove.fr :</strong><br>
+        Par défaut, les mails envoyés depuis cette plateforme (notamment ceux servant à créer votre compte) seront classés automatiquement dans les Spams par Outlook. Pour corriger cela définitivement, quand vous êtes sur votre boîte aux lettres Outlook :
+        faites un clic-droit sur n'importe quel mail, cliquez sur le menu "Courrier indésirable / Options du courrier indésirable", allez dans l'onglet "Expéditeurs approuvés" et ajoutez "massy@massy-innove.fr" dans la liste des expéditeurs approuvés.
+
+      </div>
+      
+      <div class="alert alert-info small mt-3">
+        <strong>Information CNIL :</strong><br>
+        Dans le cadre de l’utilisation de la plateforme et dans le seul but de gérer le coût pour la ville de cet outil, chacun de vos appels à l’intelligence artificielle
+        est journalisé (horodatage, modèle utilisé, volume de tokens, coût estimé en € et impact CO₂).
+        Le contenu de vos requêtes n’est pas conservé en clair&nbsp;; seul un identifiant technique
+        (empreinte de hachage) est stocké pour des raisons de traçabilité.  
+        Vous pouvez consulter à tout moment vos consommations depuis votre espace personnel.
+        Ces données seront conservées un an.
+      </div>
+
+      <button type="submit" class="btn btn-success">{% trans "Créer mon compte" %}</button>
+
+      {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+      {% endif %}
+    </form>
+  </div>
+</div>
+{% endblock %}

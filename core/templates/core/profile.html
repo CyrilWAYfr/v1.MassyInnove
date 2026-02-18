@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Mon profil</h1>
+<p>Email : {{ request.user.email }}</p>
+
+<ul>
+  <li><a href="{% url 'chatbotengine:my_conversations' %}">Retrouvez tous vos échanges avec les différents Agents IA</a></li>
+  <li><a href="{% url 'account_email' %}">Gérer mes adresses email</a></li>
+  <li><a href="{% url 'account_change_password' %}">Changer mon mot de passe</a></li>
+</ul>
+
+{% if user.is_authenticated %}
+  <p class="mt-4">
+    Votre utilisation de l'IA sur MassyInnove a entraîné, à ce jour, une production totale de  
+    <strong>{{ total_co2 }} g de CO₂</strong> et un coût total de  
+    <strong>{{ total_cost }} €</strong> pour la Ville.
+  </p>
+  <ul>
+    <li><a href="{% url 'ai_audit:my_usage' %}">Accéder au suivi €/CO2 de votre utilisation de l’IA</a></li>
+  </ul>
+{% endif %}
+{% endblock %}

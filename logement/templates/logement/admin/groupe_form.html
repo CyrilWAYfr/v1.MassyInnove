@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>{{ action }}</h1>
+
+<form method="post">
+    {% csrf_token %}
+
+    {% if not single_domaine %}
+        <div class="mb-3">
+            <label class="form-label">Domaine</label>
+            {{ form.domaine }}
+        </div>
+    {% else %}
+        <div class="mb-3">
+            <label class="form-label">Domaine</label>
+            <input type="text"
+                   class="form-control"
+                   value="{{ form.domaine.value.instance.libelle }}"
+                   disabled>
+        </div>
+    {% endif %}
+
+
+    <div class="mb-3">
+        <label class="form-label">Libellé</label>
+        {{ form.libelle }}
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Ordre</label>
+        {{ form.ordre }}
+    </div>
+    
+    <div class="mb-3 form-check">
+        {{ form.collapsed_by_default }}
+        <label class="form-check-label">
+            Replié par défaut
+        </label>
+    </div>
+
+
+    <button type="submit" class="btn btn-success">Enregistrer</button>
+    <a href="{% url 'logement:groupes_list' %}" class="btn btn-secondary">Annuler</a>
+</form>
+
+{% endblock %}

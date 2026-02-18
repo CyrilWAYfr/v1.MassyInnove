@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load form_tags %}
+
+{% block content %}
+
+<h2>Confirmation création demandeur</h2>
+
+<p>
+    L'adresse email <strong>{{ email }}</strong> n'existe pas dans la base.
+</p>
+<p>
+    Voulez-vous créer un nouveau demandeur avec cette adresse, puis enregistrer ce contact entrant ?
+</p>
+
+<form method="post">
+    {% csrf_token %}
+
+    {# On repasse toutes les valeurs du formulaire en hidden #}
+    <input type="hidden" name="confirm_create" value="1">
+
+    <input type="hidden" name="email"  value="{{ form.email.value }}">
+    <input type="hidden" name="date"   value="{{ form.date.value }}">
+    <input type="hidden" name="statut" value="{{ form.statut.value }}">
+    <input type="hidden" name="canal"  value="{{ form.canal.value }}">
+    <input type="hidden" name="objet"  value="{{ form.objet.value }}">
+    <input type="hidden" name="texte"  value="{{ form.texte.value }}">
+
+    <button type="submit" class="btn btn-primary">Oui, créer le demandeur</button>
+    <a href="javascript:history.back();" class="btn btn-secondary">Non, revenir au formulaire</a>
+</form>
+
+{% endblock %}

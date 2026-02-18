@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block page_title %}
+<h1>Test Vincent</h1>
+{% endblock %}
+
+{% block content %}
+
+<div class="row">
+    
+
+    <!-- Traiter un nouvel email entrant -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Traiter un mail entrant</h5>
+                <p class="card-text text-muted">Répondre à un contact entrant.</p>
+                <a href="{% url 'logement:email_create_step1' domaine_id=4 %}?return_url={{ request.get_full_path|urlencode }}"
+                   class="btn btn-primary">
+                    Nouveau mail
+                </a>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des contacts entrants -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Contacts entrants</h5>
+                <p class="card-text text-muted">Consulter, filtrer et modifier les contacts déjà enregistrés.</p>
+                <a href="{% url 'logement:contact_list' %}?return_url={{ request.get_full_path|urlencode }}">
+                    Voir la liste
+                </a>
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Liste des demandeurs -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Demandeurs</h5>
+                <p class="card-text text-muted">Voir tous les demandeurs, avec leur dernier contact et l'historique.</p>
+                <a href="{% url 'logement:demandeurs_list' %}?return_url={{ request.get_full_path|urlencode }}"
+                   class="btn btn-warning">
+                    Voir les demandeurs
+                </a>
+
+            </div>
+        </div>
+    </div>
+
+<div class="row">
+
+
+{% if is_plateforme_admin%}
+<hr class="my-4">
+<h4 class="text-muted mb-3">Administration générale de la plateforme</h4>
+
+<div class="row">
+
+
+
+    <!-- Gestion des canaux -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Gestion des canaux</h5>
+                <a href="{% url 'logement:canal_list' %}" class="btn btn-outline-dark">
+                    Gérer les canaux
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gestion des salutations -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Gestion des salutations</h5>
+                <a href="{% url 'logement:salutation_list' %}" class="btn btn-outline-dark">
+                    Gérer les salutations
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endif %}
+
+
+{% if is_domaine_admin %}
+<hr class="my-4">
+<h4 class="text-muted mb-3">Administration des domaines</h4>
+
+<div class="row">
+
+    <!-- Gestion des domaines -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Gestion des domaines</h5>
+                <a href="{% url 'logement:domaines_list' %}" class="btn btn-outline-dark">
+                    Gérer les domaines
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Groupes -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Gestion des groupes</h5>
+                <a href="{% url 'logement:groupes_list' %}" class="btn btn-outline-dark">
+                    Gérer les groupes
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thématiques -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Gestion des thématiques</h5>
+                <a href="{% url 'logement:thematique_list' %}" class="btn btn-outline-dark">
+                    Gérer les thématiques
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endif %}
+
+
+
+
+</div>
+
+{% endblock %}

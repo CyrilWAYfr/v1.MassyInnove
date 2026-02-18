@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Supprimer ce domaine ?</h1>
+
+<div class="alert alert-warning">
+    <p>Vous allez supprimer le domaine :</p>
+    <p><strong>{{ domaine.libelle }}</strong></p>
+
+    <p>
+        ⚠️ Cela supprimera également tous les groupes rattachés à ce domaine,
+        ainsi que l'association des thématiques à ces groupes.
+    </p>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <button class="btn btn-danger">Supprimer</button>
+    <a href="{% url 'logement:domaines_list' %}" class="btn btn-secondary">Annuler</a>
+</form>
+
+{% endblock %}

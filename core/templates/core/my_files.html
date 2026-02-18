@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Ma bibliothèque de fichiers</h1>
+
+{% if files %}
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>Taille</th>
+        <th>Ajouté le</th>
+        <th>Synchronisation Mistral</th>
+        <th class="text-end">Actions</th>
+      </tr>
+    </thead>
+    
+    
+<div class="alert alert-warning small" role="alert">
+  <h6 class="alert-heading">⚠️ Attention</h6>
+  <p>
+    L’<strong>ajout d’un fichier</strong> ne se limite pas à un simple stockage :  
+    il entraîne également sa transmission sur la plateforme <strong>Mistral</strong> pour un pré-traitement automatique
+    (analyse, découpage en morceaux, indexation) facilitant son utilisation ultérieure dans les raisonnements IA.
+  </p>
+  <ul class="mb-2">
+    <li>Chaque upload génère une <strong>consommation en € et en CO₂</strong>, visible dans votre suivi d’utilisation.</li>
+    <li>Vous ne devez <strong>pas</strong> uploader de documents contenant des <strong>données personnelles</strong> (RGPD).</li>
+    <li>Vous ne devez <strong>pas</strong> uploader de fichiers qui pourraient être considérés comme <strong>confidentiels</strong> pour la Mairie.</li>
+  </ul>
+
+</div>
+
+
+    
+    
+    
+    <tbody>
+      {% for f in files %}
+      <tr>
+        <td>{{ f.original_name }}</td>
+        <td>{{ f.size_bytes|filesizeformat }}</td>
+        <td>{{ f.created_at|date:"d/m/Y H:i" }}</td>
+        <td>
+          {% if f.processing_status == "Succeeded" %}
+            <span class="badge bg-success">✅ Terminé</span>
+          {% elif f.processing_status == "Running" %}
+            <span class="badge bg-warning text-dark">⏳ En cours</span>
+          {% else %}
+            <span class="badge bg-secondary">{{ f.processing_status }}</span>
+          {% endif %}
+        </td>
+        <td class="text-end">
+          <form method="post" action="{% url 'core:delete_file' f.id %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger"
+                    onclick="return confirm('Supprimer ce fichier ?')">
+              <i class="fas fa-trash"></i>
+            </button>
+          </form>
+          {% if f.processing_status == "Running" %}
+            <a href="{% url 'core:refresh_document_status' f.id %}" class="btn btn-sm btn-outline-secondary">
+              🔄 Rafraîchir
+            </a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <div class="alert alert-info">
+    Aucun fichier dans votre bibliothèque pour le moment.
+  </div>
+{% endif %}
+
+<hr>
+
+<!-- Zone upload (après le tableau) -->
+<div id="upload-area" class="p-4 border rounded text-center bg-light">
+  <form id="upload-form" method="post" action="{% url 'core:upload_file' %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="file" id="file-input" name="file" class="d-none" required>
+    <label for="file-input" class="btn btn-primary">
+      <i class="fas fa-upload"></i> Choisir un fichier ou glisser-déposer
+    </label>
+  </form>
+  <p class="text-muted mt-2">Formats supportés : PDF, Word, Excel, PowerPoint, Txt, Html...</p>
+
+  <!-- Progress bar cachée par défaut -->
+  <div class="progress mt-3 d-none" id="upload-progress">
+    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+         role="progressbar" style="width: 0%">0%</div>
+  </div>
+</div>
+
+{% if user.is_superuser %}
+  <hr>
+  <div class="mt-4">
+    <h5 class="mb-3">⚙️ Administration</h5>
+    <p class="text-muted">Outils réservés aux administrateurs pour la maintenance des bibliothèques de fichiers.</p>
+
+    <!-- Groupe 1 : Nettoyage -->
+    <div class="mb-4">
+      <h6>🧹 Nettoyage des fichiers orphelins</h6>
+      <div class="d-flex gap-2 flex-wrap mt-2">
+        <form method="post" action="{% url 'core:preview_clean_all_libraries' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-secondary btn-sm">
+            🔍 Prévisualiser
+          </button>
+        </form>
+        <form method="post" action="{% url 'core:clean_all_libraries' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-danger btn-sm">
+            🧹 Nettoyer
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Groupe 2 : Actualisation des logs -->
+    <div>
+      <h6>📊 Actualisation des logs de tokens (uploads asynchrones)</h6>
+      <div class="d-flex gap-2 flex-wrap mt-2">
+        <form method="post" action="{% url 'core:sync_all_files' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-primary btn-sm">
+            🔄 Synchroniser fichiers en attente
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const fileInput = document.getElementById("file-input");
+  const form = document.getElementById("upload-form");
+  const uploadArea = document.getElementById("upload-area");
+  const progressDiv = document.getElementById("upload-progress");
+  const progressBar = progressDiv.querySelector(".progress-bar");
+
+  function uploadFile(file) {
+    const url = form.action;
+    const formData = new FormData(form);
+    formData.set("file", file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+
+    // CSRF token
+    const csrfToken = form.querySelector("[name=csrfmiddlewaretoken]").value;
+    xhr.setRequestHeader("X-CSRFToken", csrfToken);
+
+    // Progression
+    xhr.upload.addEventListener("progress", function (e) {
+      if (e.lengthComputable) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        progressDiv.classList.remove("d-none");
+        progressBar.style.width = percent + "%";
+        progressBar.innerText = percent + "%";
+      }
+    });
+
+    // Fin de l’upload
+    xhr.onload = function () {
+      if (xhr.status === 200 || xhr.status === 302) {
+        window.location.reload(); // recharge la page pour voir le fichier ajouté
+      } else {
+        alert("⚠️ Erreur lors de l’upload : " + xhr.statusText);
+        progressDiv.classList.add("d-none");
+        progressBar.style.width = "0%";
+        progressBar.innerText = "0%";
+      }
+    };
+
+    xhr.send(formData);
+  }
+
+  // Auto-upload dès qu’un fichier est choisi
+  fileInput.addEventListener("change", function () {
+    if (fileInput.files.length > 0) {
+      uploadFile(fileInput.files[0]);
+    }
+  });
+
+  // Drag & drop
+  uploadArea.addEventListener("dragover", function (e) {
+    e.preventDefault();
+    uploadArea.classList.add("bg-info", "text-white");
+  });
+  uploadArea.addEventListener("dragleave", function () {
+    uploadArea.classList.remove("bg-info", "text-white");
+  });
+  uploadArea.addEventListener("drop", function (e) {
+    e.preventDefault();
+    uploadArea.classList.remove("bg-info", "text-white");
+    if (e.dataTransfer.files.length > 0) {
+      uploadFile(e.dataTransfer.files[0]);
+    }
+  });
+});
+</script>
+{% endblock %}

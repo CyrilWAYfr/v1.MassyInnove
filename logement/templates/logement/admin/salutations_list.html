@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3">Gestion des salutations</h1>
+        <a href="{% url 'logement:salutation_create' %}" class="btn btn-primary">
+            Nouvelle salutation
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} mb-3">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if salutations %}
+        <table class="table table-striped table-bordered align-middle">
+            <thead>
+                <tr>
+                    <th>Libellé</th>
+                    <th style="width: 180px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in salutations %}
+                    <tr>
+                        <td>{{ s.libelle }}</td>
+                        <td>
+                            <a href="{% url 'logement:salutation_update' s.id %}" class="btn btn-sm btn-outline-secondary">
+                                Modifier
+                            </a>
+                            <a href="{% url 'logement:salutation_delete' s.id %}" class="btn btn-sm btn-outline-danger">
+                                Supprimer
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Aucune salutation définie pour le moment.</p>
+    {% endif %}
+</div>
+
+<div class="mt-4">
+    <a href="{% url 'logement:dashboard' %}" class="btn btn-secondary">
+        ← Retour à l’accueil Logement
+    </a>
+</div>
+
+{% endblock %}
