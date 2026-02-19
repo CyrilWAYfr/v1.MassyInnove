@@ -20,3 +20,7 @@ python manage.py loaddata backup.json
 
 # 5) Lancer le serveur local
 python manage.py runserver 127.0.0.1:8000
+
+Commande CURL pour tester une adresse mai: 
+$k=(Get-Content .env | Where-Object { $_ -match '^INGEST_API_KEY=' } | ForEach-Object { $_ -replace '^INGEST_API_KEY=','' }); curl.exe -X POST "https://dev.massy-innove.fr/ingest/sender-authorization/" -H "Content-Type: application/json" -H "Authorization: Bearer $k" -d "{\"sender\":\"waycyril@gmail.com\",\"domaine_id\":1}"
+

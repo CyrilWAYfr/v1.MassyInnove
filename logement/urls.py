@@ -53,6 +53,8 @@ urlpatterns = [
     path("demandeurs/<int:demandeur_id>/edit/", views.demandeur_edit, name="demandeur_edit"),
     path("demandeurs/<int:demandeur_id>/delete/", views.demandeur_delete, name="demandeur_delete"),
     path("<int:domaine_id>/demandeur/", views.demandeur_entry_point, name="demandeur_entry_point"),
+    path("<int:domaine_id>/blacklist/", views.blacklist_manage, name="blacklist_manage"),
+    path("<int:domaine_id>/blacklist/<int:entry_id>/delete/", views.blacklist_delete, name="blacklist_delete"),
 
     # Traitement des emails entrants
     path("check-demandeur/", views.check_demandeur, name="check_demandeur"),

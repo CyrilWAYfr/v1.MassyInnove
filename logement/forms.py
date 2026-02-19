@@ -1,5 +1,5 @@
 from django import forms
-from .models import Canal, Thematique, StatutContact, Domaine, Groupe, Salutations
+from .models import Canal, Thematique, StatutContact, Domaine, Groupe, Salutations, BlacklistedSender
 from django.utils import timezone
 
 
@@ -203,4 +203,22 @@ class SalutationForm(forms.ModelForm):
         }
         labels = {
             "libelle": "Libellé",
+        }
+
+class BlacklistedSenderForm(forms.ModelForm):
+    class Meta:
+        model = BlacklistedSender
+        fields = ["entry_type", "value"]
+        widgets = {
+            "entry_type": forms.Select(attrs={"class": "form-select"}),
+            "value": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Ex: bob@mycompany.com ou mycompany.com",
+                }
+            ),
+        }
+        labels = {
+            "entry_type": "Type d'entree",
+            "value": "Valeur",
         }

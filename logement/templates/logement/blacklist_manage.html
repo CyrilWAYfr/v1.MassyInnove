@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block page_title %}
+<h1>Liste noire des expediteurs - {{ domaine.libelle }}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Ajouter une entrée</h5>
+        <form method="post" class="row g-2 align-items-end">
+            {% csrf_token %}
+            <input type="hidden" name="return_url" value="{{ return_url }}">
+            <div class="col-12 col-md-3">
+                <label for="{{ form.entry_type.id_for_label }}" class="form-label">{{ form.entry_type.label }}</label>
+                {{ form.entry_type }}
+            </div>
+            <div class="col-12 col-md-7">
+                <label for="{{ form.value.id_for_label }}" class="form-label">{{ form.value.label }}</label>
+                {{ form.value }}
+                {% if form.value.errors %}
+                    <div class="text-danger small mt-1">{{ form.value.errors|join:", " }}</div>
+                {% endif %}
+            </div>
+            <div class="col-12 col-md-2 d-grid">
+                <button type="submit" class="btn btn-danger">Ajouter</button>
+            </div>
+            {% if form.non_field_errors %}
+                <div class="col-12 text-danger small">{{ form.non_field_errors|join:", " }}</div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Entrées existantes</h5>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Valeur</th>
+                        <th>Créée par</th>
+                        <th>Créée le</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in entries %}
+                        <tr>
+                            <td>{{ entry.get_entry_type_display }}</td>
+                            <td><code>{{ entry.value }}</code></td>
+                            <td>{{ entry.created_by|default:"-" }}</td>
+                            <td>{{ entry.created_at|date:"d/m/Y H:i" }}</td>
+                            <td class="text-end">
+                                <form method="post" action="{% url 'logement:blacklist_delete' domaine_id=domaine.id entry_id=entry.id %}" onsubmit="return confirm('Supprimer cette entrée de la liste noire ?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="return_url" value="{{ return_url }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">Aucune entrée en liste noire.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    {% if return_url %}
+        <a href="{{ return_url }}" class="btn btn-secondary">Retour</a>
+    {% else %}
+        <a href="{% url 'logement:dashboard' %}" class="btn btn-secondary">Retour</a>
+    {% endif %}
+</div>
+{% endblock %}

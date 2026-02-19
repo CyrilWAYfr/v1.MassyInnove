@@ -1,4 +1,7 @@
 from django.db import models
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from django.conf import settings
 from ChatBotEngine.models import AgentInstruction
 
 class Salutations(models.Model):
@@ -130,8 +133,6 @@ class Demandeur(models.Model):
     def __str__(self):
         return self.email or self.telephone or f"Demandeur {self.id}"
 
-from django.core.exceptions import ValidationError
-
 class EvaluationReponse(models.TextChoices):
         INCORRECT = "incorrect", "Incorrect"
         CORRECT_A_CORRIGER = "correct_a_corriger", "Correct avec corrections nécessaires"
@@ -255,8 +256,6 @@ class ContactEntrant(models.Model):
         return f"{domaine} / {canal} de {demandeur} du {date_str}"
 
 
-from django.conf import settings
-
 class DomaineUser(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -283,3 +282,77 @@ class DomaineUser(models.Model):
     def __str__(self):
         role = "admin" if self.is_admin else "user"
         return f"{self.user} → {self.domaine} ({role})"
+
+class BlacklistedSender(models.Model):
+    ENTRY_TYPE_EMAIL = "email"
+    ENTRY_TYPE_DOMAIN = "domain"
+    ENTRY_TYPE_CHOICES = (
+        (ENTRY_TYPE_EMAIL, "Adresse email"),
+        (ENTRY_TYPE_DOMAIN, "Domaine"),
+    )
+
+    entry_type = models.CharField(max_length=10, choices=ENTRY_TYPE_CHOICES)
+    value = models.CharField(max_length=255, db_index=True)
+    domaine = models.ForeignKey(
+        Domaine,
+        on_delete=models.CASCADE,
+        related_name="blacklisted_senders",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="logement_blacklist_entries",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["domaine", "entry_type", "value"],
+                name="uniq_blacklisted_sender_domain_type_value",
+            )
+        ]
+        ordering = ["domaine__ordre", "domaine__libelle", "entry_type", "value"]
+
+    def clean(self):
+        normalized = (self.value or "").strip().lower()
+        if not normalized:
+            raise ValidationError("La valeur de liste noire ne peut pas etre vide.")
+
+        if self.entry_type == self.ENTRY_TYPE_EMAIL:
+            validate_email(normalized)
+        elif self.entry_type == self.ENTRY_TYPE_DOMAIN:
+            if "@" in normalized:
+                raise ValidationError("Un domaine ne doit pas contenir '@'.")
+            parts = normalized.split(".")
+            if len(parts) < 2 or any(not part or len(part) > 63 for part in parts):
+                raise ValidationError("Le domaine indique est invalide.")
+            for part in parts:
+                if not part.replace("-", "").isalnum() or part.startswith("-") or part.endswith("-"):
+                    raise ValidationError("Le domaine indique est invalide.")
+        else:
+            raise ValidationError("Type d'entree invalide pour la liste noire.")
+
+    def save(self, *args, **kwargs):
+        self.value = (self.value or "").strip().lower().lstrip("@")
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.domaine} / {self.get_entry_type_display()} : {self.value}"
+
+    @classmethod
+    def is_sender_blacklisted(cls, *, sender_email: str, domaine_id: int) -> bool:
+        normalized_email = (sender_email or "").strip().lower()
+        if not normalized_email or "@" not in normalized_email:
+            return False
+
+        domain = normalized_email.rsplit("@", 1)[1]
+        return cls.objects.filter(
+            domaine_id=domaine_id
+        ).filter(
+            models.Q(entry_type=cls.ENTRY_TYPE_EMAIL, value=normalized_email)
+            | models.Q(entry_type=cls.ENTRY_TYPE_DOMAIN, value=domain)
+        ).exists()

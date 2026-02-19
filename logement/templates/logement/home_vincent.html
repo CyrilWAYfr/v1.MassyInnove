@@ -54,6 +54,19 @@
         </div>
     </div>
 
+    <div class="col-md-6 col-lg-4">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Liste noire expéditeurs</h5>
+                <p class="card-text text-muted">Bloquer une adresse email ou un domaine complet.</p>
+                <a href="{% url 'logement:blacklist_manage' domaine_id=4 %}?return_url={{ request.get_full_path|urlencode }}"
+                   class="btn btn-outline-danger">
+                    Gérer la liste noire
+                </a>
+            </div>
+        </div>
+    </div>
+
 <div class="row">
 
 

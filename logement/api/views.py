@@ -4,7 +4,7 @@ from django.http import JsonResponse, HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateparse import parse_datetime
 
-from logement.models import ContactEntrant, PieceJointeContactEntrant, Demandeur
+from logement.models import ContactEntrant, PieceJointeContactEntrant, Demandeur, BlacklistedSender, Domaine
 from .auth import api_key_required
 
 
@@ -59,6 +59,8 @@ def ingest_contact_entrant(request: HttpRequest):
     domaine_id = data.get("domaine_id")
     if not isinstance(domaine_id, int):
         return _bad_request("domaine_id must be an integer")
+    if not Domaine.objects.filter(id=domaine_id).exists():
+        return _bad_request("domaine_id is invalid")
 
     statut_id = data.get("statut_id", None)
     if statut_id is not None and not isinstance(statut_id, int):
@@ -295,3 +297,40 @@ def ingest_contact_entrant_json(request):
         "contact_entrant_id": contact.id,
         "pieces_jointes_count": saved,
     }, status=201)
+
+
+@csrf_exempt
+@api_key_required
+def check_sender_authorization(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "Method not allowed"}, status=405)
+
+    try:
+        data = json.loads((request.body or b"{}").decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return _bad_request("Invalid JSON body")
+
+    sender = (data.get("sender") or "").strip().lower()
+    if not sender:
+        return _bad_request("sender is required")
+
+    domaine_id = data.get("domaine_id")
+    if not isinstance(domaine_id, int):
+        return _bad_request("domaine_id must be an integer")
+    if not Domaine.objects.filter(id=domaine_id).exists():
+        return _bad_request("domaine_id is invalid")
+
+    if "@" not in sender:
+        return _bad_request("sender must be a fully-formed email address")
+
+    is_blocked = BlacklistedSender.is_sender_blacklisted(
+        sender_email=sender,
+        domaine_id=domaine_id,
+    )
+    return JsonResponse(
+        {
+            "ok": True,
+            "authorized": not is_blocked,
+        },
+        status=200,
+    )

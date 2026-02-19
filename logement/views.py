@@ -1204,7 +1204,8 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 
-from .models import PieceJointeContactEntrant
+from .models import PieceJointeContactEntrant, BlacklistedSender
+from .forms import BlacklistedSenderForm
 from .security import user_has_domaine
 
 
@@ -1224,3 +1225,59 @@ def piece_jointe_contact_download(request, piece_id):
     filename = pj.nom_original or f"piece_jointe_{pj.id}"
     resp["Content-Disposition"] = f'attachment; filename="{filename}"'
     return resp
+
+@login_required
+@domaine_required
+@require_http_methods(["GET", "POST"])
+def blacklist_manage(request, domaine_id):
+    domaine = request.domaine
+    return_url = request.GET.get("return_url") or request.POST.get("return_url")
+
+    if request.method == "POST":
+        form = BlacklistedSenderForm(request.POST)
+        if form.is_valid():
+            entry = form.save(commit=False)
+            entry.domaine = domaine
+            entry.created_by = request.user
+            entry.save()
+            messages.success(request, "Entree ajoutee a la liste noire.")
+            if return_url:
+                return redirect(
+                    f"{reverse('logement:blacklist_manage', args=[domaine.id])}"
+                    f"?return_url={urlquote(return_url)}"
+                )
+            return redirect("logement:blacklist_manage", domaine_id=domaine.id)
+    else:
+        form = BlacklistedSenderForm()
+
+    entries = (
+        BlacklistedSender.objects
+        .filter(domaine=domaine)
+        .select_related("created_by")
+        .order_by("entry_type", "value")
+    )
+
+    return render(request, "logement/blacklist_manage.html", {
+        "form": form,
+        "entries": entries,
+        "domaine": domaine,
+        "return_url": return_url,
+    })
+
+
+@require_POST
+@login_required
+@domaine_required
+def blacklist_delete(request, domaine_id, entry_id):
+    domaine = request.domaine
+    entry = get_object_or_404(BlacklistedSender, id=entry_id, domaine=domaine)
+    return_url = request.POST.get("return_url")
+    entry.delete()
+    messages.success(request, "Entree retiree de la liste noire.")
+
+    if return_url:
+        return redirect(
+            f"{reverse('logement:blacklist_manage', args=[domaine.id])}"
+            f"?return_url={urlquote(return_url)}"
+        )
+    return redirect("logement:blacklist_manage", domaine_id=domaine.id)
