@@ -21,6 +21,8 @@ PUBLIC_PATHS = {
     "/ingest/contact-entrant/",
     "/ingest/contact-entrant-json",
     "/ingest/contact-entrant-json/",
+    "/ingest/sender-authorization",
+    "/ingest/sender-authorization/",
 }
 
 def _is_static_or_media(path: str) -> bool:
