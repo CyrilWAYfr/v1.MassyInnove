@@ -271,7 +271,52 @@ def contact_delete(request, domaine_id, contact_id):
         domaine=request.domaine
     )
     return_url = request.POST.get("return_url")
+    delete_action = request.POST.get("delete_action", "delete_only")
+    sender_email = ((contact.demandeur.email if contact.demandeur else "") or "").strip().lower()
+    sender_domain = sender_email.rsplit("@", 1)[1] if "@" in sender_email else ""
     contact.delete()
+
+    if delete_action == "delete_and_blacklist_sender":
+        if not sender_email:
+            messages.warning(
+                request,
+                "Contact supprime. Adresse expediteur indisponible, blacklist non mise a jour.",
+            )
+        else:
+            _, created = BlacklistedSender.objects.get_or_create(
+                domaine=request.domaine,
+                entry_type=BlacklistedSender.ENTRY_TYPE_EMAIL,
+                value=sender_email,
+                defaults={"created_by": request.user},
+            )
+            if created:
+                messages.success(request, "Contact supprime. Expediteur ajoute a la liste noire.")
+            else:
+                messages.info(request, "Contact supprime. Expediteur deja present en liste noire.")
+        if return_url:
+            return redirect(return_url)
+        return redirect("logement:contact_list")
+
+    if delete_action == "delete_and_blacklist_domain":
+        if not sender_domain:
+            messages.warning(
+                request,
+                "Contact supprime. Domaine expediteur indisponible, blacklist non mise a jour.",
+            )
+        else:
+            _, created = BlacklistedSender.objects.get_or_create(
+                domaine=request.domaine,
+                entry_type=BlacklistedSender.ENTRY_TYPE_DOMAIN,
+                value=sender_domain,
+                defaults={"created_by": request.user},
+            )
+            if created:
+                messages.success(request, "Contact supprime. Domaine ajoute a la liste noire.")
+            else:
+                messages.info(request, "Contact supprime. Domaine deja present en liste noire.")
+        if return_url:
+            return redirect(return_url)
+        return redirect("logement:contact_list")
 
     messages.success(request, "Contact supprimé.")
     if return_url:

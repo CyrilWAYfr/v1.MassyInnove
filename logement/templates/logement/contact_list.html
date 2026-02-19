@@ -237,14 +237,53 @@
 
 
                     <form method="post"
-                          action="{% url 'logement:contact_delete' domaine_id=c.domaine.id contact_id=c.id %}"
-                          onsubmit="return confirm('Confirmer la suppression de ce contact ?');">
+                          action="{% url 'logement:contact_delete' domaine_id=c.domaine.id contact_id=c.id %}">
                         {% csrf_token %}
-                        <input type="hidden" name="return_url"
-                                   value="{{ request.get_full_path }}">
-                        <button type="submit" class="btn btn-sm btn-danger">
-                            Supprimer
-                        </button>
+                        <input type="hidden" name="return_url" value="{{ request.get_full_path }}">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="submit"
+                                    class="btn btn-danger"
+                                    name="delete_action"
+                                    value="delete_only"
+                                    onclick="return confirm('Confirmer la suppression de ce contact ?');">
+                                Supprimer
+                            </button>
+                            <button type="button"
+                                    class="btn btn-danger dropdown-toggle dropdown-toggle-split"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false">
+                                <span class="visually-hidden">Options de suppression</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <button type="submit"
+                                            class="dropdown-item"
+                                            name="delete_action"
+                                            value="delete_only"
+                                            onclick="return confirm('Confirmer la suppression de ce contact ?');">
+                                        Supprimer seulement
+                                    </button>
+                                </li>
+                                <li>
+                                    <button type="submit"
+                                            class="dropdown-item"
+                                            name="delete_action"
+                                            value="delete_and_blacklist_sender"
+                                            onclick="return confirm('Supprimer ce contact et blacklist l\\'expéditeur {{ c.demandeur.email|default:'(email indisponible)'|escapejs }} ?');">
+                                        Supprimer + blacklist expéditeur ({{ c.demandeur.email|default:"email indisponible" }})
+                                    </button>
+                                </li>
+                                <li>
+                                    <button type="submit"
+                                            class="dropdown-item text-danger"
+                                            name="delete_action"
+                                            value="delete_and_blacklist_domain"
+                                            onclick="return confirm('Supprimer ce contact et blacklist tout le domaine de l\\'expéditeur ? Cette action bloquera tous les expéditeurs de ce domaine.');">
+                                        Supprimer + blacklist domaine de l'expéditeur
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
                     </form>
                 </div>
             </td>
