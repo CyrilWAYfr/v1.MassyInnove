@@ -30,9 +30,9 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from .models import Domaine
 from .stats import (
-    contacts_par_statut,
-    evolution_statut_3_par_mois_ytd,
-    top_thematiques_ytd,
+    contacts_par_statut_par_mois,
+    evolution_par_statut_mensuelle_ytd,
+    top_thematiques_par_periode,
 )
 
 @login_required
@@ -56,19 +56,37 @@ def logement_dashboard(request):
                 "domaine_id": domaine_id,
                 "domaine_libelle": f"Domaine #{domaine_id}",
                 "is_missing": True,
-                "contacts_par_statut": [],
-                "evolution_statut_3": [],
-                "top_thematiques_ytd": [],
+                "status_month": {
+                    "month_options": [],
+                    "default_month_value": "",
+                    "default_month_label": "",
+                    "data_by_month": {},
+                },
+                "evolution_status": {
+                    "month_labels": [],
+                    "status_options": [],
+                    "default_status": "",
+                    "data_by_status": {},
+                },
+                "top_thematiques": {
+                    "month": [],
+                    "ytd": [],
+                    "all": [],
+                },
             })
             continue
+
+        status_month = contacts_par_statut_par_mois(domaine)
+        evolution_status = evolution_par_statut_mensuelle_ytd(domaine)
+        top_thematiques = top_thematiques_par_periode(domaine)
 
         stats_rows.append({
             "domaine_id": domaine.id,
             "domaine_libelle": domaine.libelle,
             "is_missing": False,
-            "contacts_par_statut": contacts_par_statut(domaine),
-            "evolution_statut_3": evolution_statut_3_par_mois_ytd(domaine),
-            "top_thematiques_ytd": top_thematiques_ytd(domaine),
+            "status_month": status_month,
+            "evolution_status": evolution_status,
+            "top_thematiques": top_thematiques,
         })
 
     context = {

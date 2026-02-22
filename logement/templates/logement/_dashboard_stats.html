@@ -7,23 +7,46 @@
     <div class="col-12 mb-3">
         <div class="card shadow-sm">
             <div class="card-body">
-                <h5 class="mb-3">
-                    {{ row.domaine_libelle }}
-                </h5>
+                <h5 class="mb-3">{{ row.domaine_libelle }}</h5>
                 {% if row.is_missing %}
                     <p class="text-danger mb-0">Domaine introuvable.</p>
                 {% else %}
                     <div class="row">
                         <div class="col-lg-4 col-md-12 mb-3">
-                            <h6 class="mb-2">Nb de contacts par statuts</h6>
+                            <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                                <h6 class="mb-0">
+                                    Nb de contacts par statuts (<span id="monthTitle-{{ row.domaine_id }}">{{ row.status_month.default_month_label }}</span>)
+                                </h6>
+                                <select id="statusMonthSelect-{{ row.domaine_id }}" class="form-select form-select-sm" style="max-width: 180px;">
+                                    {% for m in row.status_month.month_options %}
+                                        <option value="{{ m.value }}" {% if m.value == row.status_month.default_month_value %}selected{% endif %}>{{ m.label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                             <canvas id="statusChart-{{ row.domaine_id }}" height="110"></canvas>
                         </div>
+
                         <div class="col-lg-4 col-md-12 mb-3">
-                            <h6 class="mb-2">Évolution mensuelle / Statut Répondu</h6>
+                            <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                                <h6 class="mb-0">Évolution mensuelle / Statut</h6>
+                                <select id="evolutionStatusSelect-{{ row.domaine_id }}" class="form-select form-select-sm" style="max-width: 180px;">
+                                    {% for s in row.evolution_status.status_options %}
+                                        <option value="{{ s }}" {% if s == row.evolution_status.default_status %}selected{% endif %}>{{ s }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                             <canvas id="evolutionChart-{{ row.domaine_id }}" height="110"></canvas>
                         </div>
+
                         <div class="col-lg-4 col-md-12 mb-3">
-                            <h6 class="mb-2">Top thématiques (depuis début année)</h6>
+                            <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                                <h6 class="mb-0">Top thématiques</h6>
+                                <select id="themesPeriodSelect-{{ row.domaine_id }}" class="form-select form-select-sm" style="max-width: 180px;">
+                                    <option value="month" selected>Mois en cours</option>
+                                    <option value="ytd">Début de l'année</option>
+                                    <option value="all">Tous contacts</option>
+                                </select>
+                            </div>
                             <div class="table-responsive">
                                 <table class="table table-sm mb-0">
                                     <thead>
@@ -32,18 +55,7 @@
                                             <th class="text-end">Nb</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        {% for t in row.top_thematiques_ytd %}
-                                            <tr>
-                                                <td>{{ t.thematiques__libelle_thematique }}</td>
-                                                <td class="text-end">{{ t.total }}</td>
-                                            </tr>
-                                        {% empty %}
-                                            <tr>
-                                                <td colspan="2" class="text-muted">Aucune donnée</td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
+                                    <tbody id="themesTableBody-{{ row.domaine_id }}"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -65,110 +77,180 @@
         return;
     }
 
+    const statusOrder = ["Auto", "Nouveau", "Brouillon", "Répondu"];
+    const normalizeStatusLabel = (label) => {
+        if (label === "Repondu") return "Répondu";
+        if (label === "Non defini") return "Non défini";
+        return label;
+    };
+
     const statsRows = [
         {% for row in stats_rows %}
         {
             domaineId: {{ row.domaine_id }},
             isMissing: {% if row.is_missing %}true{% else %}false{% endif %},
-            contactsParStatut: [
-                {% for s in row.contacts_par_statut %}
-                { label: "{{ s.statut_libelle|escapejs }}", total: {{ s.total }} },
-                {% endfor %}
-            ],
-            evolutionStatut3: [
-                {% for m in row.evolution_statut_3 %}
-                { label: "{{ m.label|escapejs }}", total: {{ m.total }} },
-                {% endfor %}
-            ],
-            topThematiquesYtd: [
-                {% for t in row.top_thematiques_ytd %}
-                { label: "{{ t.thematiques__libelle_thematique|escapejs }}", total: {{ t.total }} },
-                {% endfor %}
-            ]
+            statusMonth: {
+                defaultMonthValue: "{{ row.status_month.default_month_value|escapejs }}",
+                dataByMonth: {
+                    {% for month_key, items in row.status_month.data_by_month.items %}
+                    "{{ month_key|escapejs }}": [
+                        {% for item in items %}
+                        { label: "{{ item.statut_libelle|escapejs }}", total: {{ item.total }} },
+                        {% endfor %}
+                    ],
+                    {% endfor %}
+                }
+            },
+            evolutionStatus: {
+                defaultStatus: "{{ row.evolution_status.default_status|escapejs }}",
+                monthLabels: [{% for ml in row.evolution_status.month_labels %}"{{ ml|escapejs }}",{% endfor %}],
+                dataByStatus: {
+                    {% for status_label, totals in row.evolution_status.data_by_status.items %}
+                    "{{ status_label|escapejs }}": [{% for n in totals %}{{ n }},{% endfor %}],
+                    {% endfor %}
+                }
+            },
+            topThematiques: {
+                month: [{% for t in row.top_thematiques.month %}{ libelle: "{{ t.libelle|escapejs }}", total: {{ t.total }} },{% endfor %}],
+                ytd: [{% for t in row.top_thematiques.ytd %}{ libelle: "{{ t.libelle|escapejs }}", total: {{ t.total }} },{% endfor %}],
+                all: [{% for t in row.top_thematiques.all %}{ libelle: "{{ t.libelle|escapejs }}", total: {{ t.total }} },{% endfor %}]
+            }
         },
         {% endfor %}
     ];
 
-    statsRows.forEach((row) => {
-        if (row.isMissing) {
+    const chartsByDomaine = {};
+
+    function sortStatusRows(rows) {
+        const byLabel = new Map(rows.map((x) => [normalizeStatusLabel(x.label), x.total]));
+        const ordered = [];
+        statusOrder.forEach((label) => {
+            if (byLabel.has(label)) {
+                ordered.push({ label: label, total: byLabel.get(label) });
+                byLabel.delete(label);
+            }
+        });
+        Array.from(byLabel.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .forEach(([label, total]) => ordered.push({ label, total }));
+        return ordered;
+    }
+
+    function updateStatusChart(row, monthValue) {
+        const rawRows = row.statusMonth.dataByMonth[monthValue] || [];
+        const ordered = sortStatusRows(rawRows);
+        const labels = ordered.map((x) => x.label);
+        const values = ordered.map((x) => x.total);
+        const chart = chartsByDomaine[row.domaineId].statusChart;
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = values;
+        chart.update();
+    }
+
+    function updateEvolutionChart(row, statusValue) {
+        const labels = row.evolutionStatus.monthLabels;
+        const values = row.evolutionStatus.dataByStatus[statusValue] || labels.map(() => 0);
+        const chart = chartsByDomaine[row.domaineId].evolutionChart;
+        chart.data.labels = labels;
+        chart.data.datasets[0].label = statusValue || "Statut";
+        chart.data.datasets[0].data = values;
+        chart.update();
+    }
+
+    function updateThemesTable(row, periodValue) {
+        const body = document.getElementById(`themesTableBody-${row.domaineId}`);
+        if (!body) return;
+
+        const rows = row.topThematiques[periodValue] || [];
+        if (!rows.length) {
+            body.innerHTML = '<tr><td colspan="2" class="text-muted">Aucune donnée</td></tr>';
             return;
         }
 
+        body.innerHTML = rows
+            .map((x) => `<tr><td>${x.libelle}</td><td class="text-end">${x.total}</td></tr>`)
+            .join("");
+    }
+
+    statsRows.forEach((row) => {
+        if (row.isMissing) return;
+
         const statusCanvas = document.getElementById(`statusChart-${row.domaineId}`);
-        if (statusCanvas) {
-            const statusOrder = ["Auto", "Nouveau", "Brouillon", "Répondu"];
-            const normalizeStatusLabel = (label) => {
-                if (label === "Repondu") return "Répondu";
-                if (label === "Non defini") return "Non défini";
-                return label;
-            };
-            const byLabel = new Map(
-                row.contactsParStatut.map((x) => [normalizeStatusLabel(x.label), x.total])
-            );
-            const ordered = [];
-            statusOrder.forEach((label) => {
-                if (byLabel.has(label)) {
-                    ordered.push({ label: label, total: byLabel.get(label) });
-                    byLabel.delete(label);
-                }
-            });
-            Array.from(byLabel.entries())
-                .sort((a, b) => a[0].localeCompare(b[0]))
-                .forEach(([label, total]) => ordered.push({ label, total }));
-
-            const labels = ordered.map((x) => x.label);
-            const values = ordered.map((x) => x.total);
-            new Chart(statusCanvas.getContext("2d"), {
-                type: "bar",
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: "Contacts",
-                        data: values,
-                        backgroundColor: "#0d6efd",
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { precision: 0 } }
-                    }
-                }
-            });
-        }
-
         const evolutionCanvas = document.getElementById(`evolutionChart-${row.domaineId}`);
-        if (evolutionCanvas) {
-            const labels = row.evolutionStatut3.map((x) => x.label);
-            const values = row.evolutionStatut3.map((x) => x.total);
-            new Chart(evolutionCanvas.getContext("2d"), {
-                type: "line",
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: "Statut Répondu",
-                        data: values,
-                        borderColor: "#198754",
-                        backgroundColor: "rgba(25, 135, 84, 0.2)",
-                        tension: 0.25,
-                        fill: true,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { precision: 0 } }
-                    }
-                }
-            });
+        if (!statusCanvas || !evolutionCanvas) return;
+
+        const statusChart = new Chart(statusCanvas.getContext("2d"), {
+            type: "bar",
+            data: {
+                labels: [],
+                datasets: [{
+                    label: "Contacts",
+                    data: [],
+                    backgroundColor: "rgba(25, 135, 84, 0.2)",
+                    borderColor: "#198754",
+                    borderWidth: 1,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+
+        const evolutionChart = new Chart(evolutionCanvas.getContext("2d"), {
+            type: "line",
+            data: {
+                labels: [],
+                datasets: [{
+                    label: "Statut",
+                    data: [],
+                    borderColor: "#198754",
+                    backgroundColor: "rgba(25, 135, 84, 0.2)",
+                    tension: 0.25,
+                    fill: true,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+
+        chartsByDomaine[row.domaineId] = {
+            statusChart: statusChart,
+            evolutionChart: evolutionChart,
+        };
+
+        const monthSelect = document.getElementById(`statusMonthSelect-${row.domaineId}`);
+        const monthTitle = document.getElementById(`monthTitle-${row.domaineId}`);
+        if (monthSelect) {
+            const applyMonth = () => {
+                const selectedOption = monthSelect.options[monthSelect.selectedIndex];
+                monthTitle.textContent = selectedOption ? selectedOption.text : "";
+                updateStatusChart(row, monthSelect.value);
+            };
+            monthSelect.addEventListener("change", applyMonth);
+            monthSelect.value = row.statusMonth.defaultMonthValue || monthSelect.value;
+            applyMonth();
         }
 
+        const statusSelect = document.getElementById(`evolutionStatusSelect-${row.domaineId}`);
+        if (statusSelect) {
+            const applyStatus = () => updateEvolutionChart(row, normalizeStatusLabel(statusSelect.value));
+            statusSelect.addEventListener("change", applyStatus);
+            statusSelect.value = row.evolutionStatus.defaultStatus || statusSelect.value;
+            applyStatus();
+        }
+
+        const periodSelect = document.getElementById(`themesPeriodSelect-${row.domaineId}`);
+        if (periodSelect) {
+            const applyPeriod = () => updateThemesTable(row, periodSelect.value);
+            periodSelect.addEventListener("change", applyPeriod);
+            periodSelect.value = "month";
+            applyPeriod();
+        }
     });
 })();
 </script>
