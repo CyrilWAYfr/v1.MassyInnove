@@ -1,182 +1,174 @@
-{# templates/logement/_dashboard_stats.html #}
-
 <div class="col-12">
     <hr class="my-4">
-    <h4 class="text-muted mb-3">
-        Principaux chiffres d'activité du service :
-    </h4>
+    <h4 class="text-muted mb-3">Statistiques par domaine</h4>
 </div>
 
-<div class="row align-items-stretch">
-
-    {# === 1. Répartition par statut (dernier mois dispo) === #}
-<div class="col-lg-3 col-md-6 mb-3">
-  <div class="card h-100 shadow-sm">
-    <div class="card-body">
-      <h6 class="card-title mb-3">
-        Mois en cours ({{ stats_month_label|default:"?" }})
-      </h6>
-
-      <div class="table-responsive">
-        <table class="table table-sm mb-0">
-          <thead>
-            <tr>
-              <th>Statut</th>
-              <th class="text-end">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in stats_statut_mois %}
-              <tr>
-                <td>{{ row.statut_libelle|default:"Non défini" }}</td>
-                <td class="text-end fw-semibold">{{ row.total }}</td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="2" class="text-muted">
-                  Aucun statut à afficher (stats_statut_mois est vide)
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      
-    </div>
-  </div>
-</div>
-
-
-    {# === 2. Graphe mensuel par statut (compact) === #}
-    <div class="col-lg-5 col-md-6 mb-3">
-        <div class="card h-100 shadow-sm">
+{% for row in stats_rows %}
+    <div class="col-12 mb-3">
+        <div class="card shadow-sm">
             <div class="card-body">
-
-                <h6 class="card-title mb-3">
-                    Évolution mensuelle
-                </h6>
-
-                <canvas id="statutStackedChart" height="90"></canvas>
-
+                <h5 class="mb-3">
+                    {{ row.domaine_libelle }}
+                </h5>
+                {% if row.is_missing %}
+                    <p class="text-danger mb-0">Domaine introuvable.</p>
+                {% else %}
+                    <div class="row">
+                        <div class="col-lg-4 col-md-12 mb-3">
+                            <h6 class="mb-2">Nb de contacts par statuts</h6>
+                            <canvas id="statusChart-{{ row.domaine_id }}" height="110"></canvas>
+                        </div>
+                        <div class="col-lg-4 col-md-12 mb-3">
+                            <h6 class="mb-2">Évolution mensuelle / Statut Répondu</h6>
+                            <canvas id="evolutionChart-{{ row.domaine_id }}" height="110"></canvas>
+                        </div>
+                        <div class="col-lg-4 col-md-12 mb-3">
+                            <h6 class="mb-2">Top thématiques (depuis début année)</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Libellé</th>
+                                            <th class="text-end">Nb</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for t in row.top_thematiques_ytd %}
+                                            <tr>
+                                                <td>{{ t.thematiques__libelle_thematique }}</td>
+                                                <td class="text-end">{{ t.total }}</td>
+                                            </tr>
+                                        {% empty %}
+                                            <tr>
+                                                <td colspan="2" class="text-muted">Aucune donnée</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
-
-    {# === 3. Top thématiques (inchangé) === #}
-    <div class="col-lg-4 col-md-12 mb-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-
-                <h6 class="card-title mb-3">
-                    Top Thématiques (depuis le début)
-                </h6>
-
-                <ul class="list-group list-group-flush">
-                    {% for t in top_thematiques_mtd %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                            <span>{{ t.thematiques__libelle_thematique }}</span>
-                            <span class="badge text-bg-secondary rounded-pill">
-                                {{ t.total }}
-                            </span>
-                        </li>
-                    {% empty %}
-                        <li class="list-group-item text-muted px-0">
-                            Aucune thématique sur la période.
-                        </li>
-                    {% endfor %}
-                </ul>
-
-            </div>
-        </div>
+{% empty %}
+    <div class="col-12">
+        <p class="text-muted">Aucune statistique disponible.</p>
     </div>
-
-</div>
+{% endfor %}
 
 <script>
 (function () {
+    if (typeof Chart === "undefined") {
+        console.warn("Chart.js indisponible");
+        return;
+    }
 
-    const rawData = [
-      {% for row in statut_mois_ytd %}
-      {
-        month: "{{ row.year }}-{{ row.month|stringformat:'02d' }}",
-        statut: "{{ row.statut_libelle|default:'Non défini'|escapejs }}",
-        total: {{ row.total }}
-      },
-      {% endfor %}
+    const statsRows = [
+        {% for row in stats_rows %}
+        {
+            domaineId: {{ row.domaine_id }},
+            isMissing: {% if row.is_missing %}true{% else %}false{% endif %},
+            contactsParStatut: [
+                {% for s in row.contacts_par_statut %}
+                { label: "{{ s.statut_libelle|escapejs }}", total: {{ s.total }} },
+                {% endfor %}
+            ],
+            evolutionStatut3: [
+                {% for m in row.evolution_statut_3 %}
+                { label: "{{ m.label|escapejs }}", total: {{ m.total }} },
+                {% endfor %}
+            ],
+            topThematiquesYtd: [
+                {% for t in row.top_thematiques_ytd %}
+                { label: "{{ t.thematiques__libelle_thematique|escapejs }}", total: {{ t.total }} },
+                {% endfor %}
+            ]
+        },
+        {% endfor %}
     ];
 
-    if (!rawData.length) {
-        console.warn("Aucune donnée pour le graphe");
-        return;
-    }
+    statsRows.forEach((row) => {
+        if (row.isMissing) {
+            return;
+        }
 
-    const months = [...new Set(rawData.map(r => r.month))].sort();
+        const statusCanvas = document.getElementById(`statusChart-${row.domaineId}`);
+        if (statusCanvas) {
+            const statusOrder = ["Auto", "Nouveau", "Brouillon", "Répondu"];
+            const normalizeStatusLabel = (label) => {
+                if (label === "Repondu") return "Répondu";
+                if (label === "Non defini") return "Non défini";
+                return label;
+            };
+            const byLabel = new Map(
+                row.contactsParStatut.map((x) => [normalizeStatusLabel(x.label), x.total])
+            );
+            const ordered = [];
+            statusOrder.forEach((label) => {
+                if (byLabel.has(label)) {
+                    ordered.push({ label: label, total: byLabel.get(label) });
+                    byLabel.delete(label);
+                }
+            });
+            Array.from(byLabel.entries())
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .forEach(([label, total]) => ordered.push({ label, total }));
 
-    const STATUT_ORDER = ["Nouveau", "Brouillon", "Répondu"];
-
-    const STATUT_COLORS = {
-        "Nouveau": "#dc3545",
-        "Brouillon": "#ffc107",
-        "Répondu": "#198754"
-    };
-
-    // Statuts présents, MAIS dans l'ordre métier imposé
-    const statuts = STATUT_ORDER.filter(
-        statut => rawData.some(r => r.statut === statut)
-    );
-
-    const datasets = statuts.map((statut, idx) => ({
-        label: statut,
-        data: months.map(month =>
-            rawData
-                .filter(r => r.month === month && r.statut === statut)
-                .reduce((sum, r) => sum + r.total, 0)
-        ),
-        backgroundColor: STATUT_COLORS[statut],
-        borderColor: STATUT_COLORS[statut],
-        stack: "statuts",
-        order: idx   // ordre d'empilement garanti
-    }));
-
-    const canvas = document.getElementById("statutStackedChart");
-    if (!canvas) {
-        console.error("Canvas statutStackedChart introuvable");
-        return;
-    }
-
-    const ctx = canvas.getContext("2d");
-
-    new Chart(ctx, {
-        type: "bar",
-        data: {
-            labels: months,
-            datasets: datasets
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: "bottom",
-                    labels: {
-                        sort: (a, b) => {
-                            const ia = STATUT_ORDER.indexOf(a.text);
-                            const ib = STATUT_ORDER.indexOf(b.text);
-                            return ia - ib;
-                        }
+            const labels = ordered.map((x) => x.label);
+            const values = ordered.map((x) => x.total);
+            new Chart(statusCanvas.getContext("2d"), {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Contacts",
+                        data: values,
+                        backgroundColor: "#0d6efd",
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
                     }
                 }
-            },
-            scales: {
-                x: { stacked: true },
-                y: {
-                    stacked: true,
-                    beginAtZero: true,
-                    ticks: { precision: 0 }
-                }
-            }
+            });
         }
-    });
 
+        const evolutionCanvas = document.getElementById(`evolutionChart-${row.domaineId}`);
+        if (evolutionCanvas) {
+            const labels = row.evolutionStatut3.map((x) => x.label);
+            const values = row.evolutionStatut3.map((x) => x.total);
+            new Chart(evolutionCanvas.getContext("2d"), {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Statut Répondu",
+                        data: values,
+                        borderColor: "#198754",
+                        backgroundColor: "rgba(25, 135, 84, 0.2)",
+                        tension: 0.25,
+                        fill: true,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    }
+                }
+            });
+        }
+
+    });
 })();
 </script>

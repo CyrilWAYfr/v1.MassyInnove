@@ -26,78 +26,56 @@ from ChatBotEngine.models import AgentInstruction
 
 # logement/views.py
 
-from collections import defaultdict
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from .models import Domaine
-from .stats import repartition_statut_par_mois_ytd, top_thematiques_mtd
+from .stats import (
+    contacts_par_statut,
+    evolution_statut_3_par_mois_ytd,
+    top_thematiques_ytd,
+)
 
 @login_required
 def logement_dashboard(request):
-        
     profile = getattr(request.user, "profile", None)
-
     is_plateforme_admin = bool(profile and profile.is_plateforme_admin)
-
     is_domaine_admin = Domaine.objects.filter(
         user_links__user=request.user,
         user_links__is_admin=True,
     ).exists()
 
+    requested_ids = [1, 2]
+    domaines_by_id = {
+        d.id: d for d in Domaine.objects.filter(id__in=requested_ids)
+    }
+    stats_rows = []
+    for domaine_id in requested_ids:
+        domaine = domaines_by_id.get(domaine_id)
+        if not domaine:
+            stats_rows.append({
+                "domaine_id": domaine_id,
+                "domaine_libelle": f"Domaine #{domaine_id}",
+                "is_missing": True,
+                "contacts_par_statut": [],
+                "evolution_statut_3": [],
+                "top_thematiques_ytd": [],
+            })
+            continue
 
-    
-    domaine = (
-        Domaine.objects
-        .filter(user_links__user=request.user)
-        .order_by("ordre", "libelle")
-        .first()
-    )
-        
-    if not domaine:
-        return render(request, "logement/dashboard.html", {
-            "is_plateforme_admin": is_plateforme_admin,
-            "is_domaine_admin": is_domaine_admin,
-
-            "domaine": None,
-            "statut_mois_ytd": [],
-            "stats_statut_mois": [],
-            "stats_month_label": None,
-            "top_thematiques_mtd": [],
+        stats_rows.append({
+            "domaine_id": domaine.id,
+            "domaine_libelle": domaine.libelle,
+            "is_missing": False,
+            "contacts_par_statut": contacts_par_statut(domaine),
+            "evolution_statut_3": evolution_statut_3_par_mois_ytd(domaine),
+            "top_thematiques_ytd": top_thematiques_ytd(domaine),
         })
 
-    
-    statut_mois_ytd = repartition_statut_par_mois_ytd(domaine)
-    
-    stats_statut_mois = []
-    stats_month_label = None
-    
-    if statut_mois_ytd:
-        last_year, last_month = max((r["year"], r["month"]) for r in statut_mois_ytd)
-        stats_month_label = f"{last_month:02d}/{last_year}"
-    
-        acc = defaultdict(int)
-        for r in statut_mois_ytd:
-            if r["year"] == last_year and r["month"] == last_month:
-                acc[r["statut_libelle"] or "Non défini"] += int(r["total"])
-    
-        stats_statut_mois = [
-            {"statut_libelle": k, "total": v}
-            for k, v in acc.items()
-        ]
-    
     context = {
         "is_plateforme_admin": is_plateforme_admin,
         "is_domaine_admin": is_domaine_admin,
-
-        "domaine": domaine,
-    
-        "statut_mois_ytd": statut_mois_ytd,
-        "stats_statut_mois": stats_statut_mois,
-        "stats_month_label": stats_month_label,
-    
-        "top_thematiques_mtd": top_thematiques_mtd(domaine),
+        "stats_rows": stats_rows,
     }
-    
     return render(request, "logement/dashboard.html", context)
 
 
@@ -1326,3 +1304,5 @@ def blacklist_delete(request, domaine_id, entry_id):
             f"?return_url={urlquote(return_url)}"
         )
     return redirect("logement:blacklist_manage", domaine_id=domaine.id)
+
+
