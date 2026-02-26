@@ -458,8 +458,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 return; // ⛔ bloque uniquement l’envoi du mail
             }
 
+            // Autorise uniquement la navigation immédiate vers mailto.
+            // Si l'utilisateur reste sur la page, on réactive l'avertissement.
             allowNavigation = true;
-            formChanged = false;
+            setTimeout(function () {
+                allowNavigation = false;
+            }, 0);
 
             // Exemple : statut = 3 (clos)
             selectStatut.value = "3";
@@ -680,6 +684,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (dot.classList.contains("active")) {
                 dot.classList.remove("active");
                 input.value = "";
+                formChanged = true;
                 return;
             }
 
@@ -687,6 +692,7 @@ document.addEventListener("DOMContentLoaded", function () {
             dots.forEach(d => d.classList.remove("active"));
             dot.classList.add("active");
             input.value = dot.dataset.value;
+            formChanged = true;
         });
     });
 });
