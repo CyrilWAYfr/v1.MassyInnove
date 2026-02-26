@@ -90,6 +90,13 @@
     <input type="hidden" name="return_url" value="{{ return_url }}">
 
     <div class="row g-2 align-items-center">
+        <!-- Compteur -->
+        <div class="col-12 col-md-2 col-lg-2">
+            <div class="small text-muted ps-1">
+                ↓ {{ contacts.paginator.count }} contact{{ contacts.paginator.count|pluralize }}
+            </div>
+        </div>
+
         <!-- Statut d'abord -->
         <div class="col-12 col-md-3 col-lg-2">
             <select name="statut" class="form-select" onchange="document.getElementById('filtersForm').submit();">
@@ -104,7 +111,7 @@
         </div>
 
         <!-- Puis recherche -->
-        <div class="col-12 col-md-7 col-lg-8">
+        <div class="col-12 col-md-5 col-lg-6">
             <input type="text"
                    name="search"
                    class="form-control"
