@@ -15,7 +15,7 @@
                         <div class="col-lg-4 col-md-12 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
                                 <h6 class="mb-0">
-                                    Nb de contacts par statuts (<span id="monthTitle-{{ row.domaine_id }}">{{ row.status_month.default_month_label }}</span>)
+                                    Nb de contacts par statuts
                                 </h6>
                                 <select id="statusMonthSelect-{{ row.domaine_id }}" class="form-select form-select-sm" style="max-width: 180px;">
                                     {% for m in row.status_month.month_options %}
@@ -224,11 +224,8 @@
         };
 
         const monthSelect = document.getElementById(`statusMonthSelect-${row.domaineId}`);
-        const monthTitle = document.getElementById(`monthTitle-${row.domaineId}`);
         if (monthSelect) {
             const applyMonth = () => {
-                const selectedOption = monthSelect.options[monthSelect.selectedIndex];
-                monthTitle.textContent = selectedOption ? selectedOption.text : "";
                 updateStatusChart(row, monthSelect.value);
             };
             monthSelect.addEventListener("change", applyMonth);
