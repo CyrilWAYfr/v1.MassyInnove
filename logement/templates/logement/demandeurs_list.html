@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block content %}
 <h1>Liste des demandeurs</h1>
@@ -7,27 +7,15 @@
     {% if return_url %}
     <input type="hidden" name="return_url" value="{{ return_url }}">
     {% endif %}
-    <div class="col-md-4">
-        <label for="num_unique" class="form-label">Numéro unique</label>
+    <div class="col-md-8">
+        <label for="search" class="form-label">Recherche (numéro unique, email ou nom)</label>
         <input
             type="text"
-            id="num_unique"
-            name="num_unique"
+            id="search"
+            name="search"
             class="form-control"
-            value="{{ search_num_unique }}"
-            placeholder="Ex: 12345"
-            autocomplete="off"
-        >
-    </div>
-    <div class="col-md-4">
-        <label for="email" class="form-label">Email</label>
-        <input
-            type="text"
-            id="email"
-            name="email"
-            class="form-control"
-            value="{{ search_email }}"
-            placeholder="Ex: nom@domaine.fr"
+            value="{{ search }}"
+            placeholder="Ex: DUP, DUPONT, 12345, nom@domaine.fr"
             autocomplete="off"
         >
     </div>
@@ -46,6 +34,7 @@
     <thead>
         <tr>
             <th>Numéro unique</th>
+            <th>Nom</th>
             <th>Email</th>
             <th>Téléphone</th>
             <th>Dernier contact entrant</th>
@@ -57,20 +46,21 @@
     <tbody>
         {% for d in demandeurs %}
         <tr>
-            <td>{{ d.num_unique|default:"—" }}</td>
-            <td>{{ d.email|default:"—" }}</td>
-            <td>{{ d.telephone|default:"—" }}</td>
+            <td>{{ d.num_unique|default:"&mdash;"|safe }}</td>
+            <td>{{ d.nom|default:"&mdash;"|safe }}</td>
+            <td>{{ d.email|default:"&mdash;"|safe }}</td>
+            <td>{{ d.telephone|default:"&mdash;"|safe }}</td>
 
             <td>
                 {% if d.dernier_contact %}
                     {{ d.dernier_contact|date:"d/m/Y H:i" }}
                 {% else %}
-                    <span class="text-muted">—</span>
+                    <span class="text-muted">&mdash;</span>
                 {% endif %}
             </td>
 
             <td>{{ d.nb_contacts }}</td>
-            
+
             <td class="d-flex gap-1">
 
     <a href="{% url 'logement:demandeur_detail' d.id %}?return_url={{ request.get_full_path|urlencode }}"
@@ -82,7 +72,6 @@
        class="btn btn-sm btn-outline-primary">
         Modifier
     </a>
-
 
     <form method="post"
           action="{% url 'logement:demandeur_delete' demandeur_id=d.id %}"
@@ -99,11 +88,11 @@
 
 </td>
 
-            
+
         </tr>
         {% empty %}
         <tr>
-            <td colspan="6" class="text-center text-muted p-3">Aucun demandeur trouvé.</td>
+            <td colspan="7" class="text-center text-muted p-3">Aucun demandeur trouvé.</td>
         </tr>
         {% endfor %}
     </tbody>
@@ -116,7 +105,7 @@
         <li class="page-item">
             <a
                 class="page-link"
-                href="?page={{ page_obj.previous_page_number }}&num_unique={{ search_num_unique|urlencode }}&email={{ search_email|urlencode }}{% if return_url %}&return_url={{ return_url|urlencode }}{% endif %}"
+                href="?page={{ page_obj.previous_page_number }}&search={{ search|urlencode }}{% if return_url %}&return_url={{ return_url|urlencode }}{% endif %}"
             >
                 Précédent
             </a>
@@ -129,7 +118,7 @@
         <li class="page-item {% if page_obj.number == num %}active{% endif %}">
             <a
                 class="page-link"
-                href="?page={{ num }}&num_unique={{ search_num_unique|urlencode }}&email={{ search_email|urlencode }}{% if return_url %}&return_url={{ return_url|urlencode }}{% endif %}"
+                href="?page={{ num }}&search={{ search|urlencode }}{% if return_url %}&return_url={{ return_url|urlencode }}{% endif %}"
             >
                 {{ num }}
             </a>
@@ -140,7 +129,7 @@
         <li class="page-item">
             <a
                 class="page-link"
-                href="?page={{ page_obj.next_page_number }}&num_unique={{ search_num_unique|urlencode }}&email={{ search_email|urlencode }}{% if return_url %}&return_url={{ return_url|urlencode }}{% endif %}"
+                href="?page={{ page_obj.next_page_number }}&search={{ search|urlencode }}{% if return_url %}&return_url={{ return_url|urlencode }}{% endif %}"
             >
                 Suivant
             </a>
@@ -155,11 +144,11 @@
 <div class="mt-4">
     {% if return_url %}
     <a href="{{ return_url }}" class="btn btn-secondary">
-        ← Retour à l’accueil
+        &larr; Retour à l'accueil
     </a>
 {% else %}
     <a href="{% url 'home' %}" class="btn btn-secondary">
-        ← Retour à l’accueil
+        &larr; Retour à l'accueil
     </a>
 {% endif %}
 

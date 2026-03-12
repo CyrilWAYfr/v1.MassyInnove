@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 
 {% block extra_head %}
@@ -44,7 +44,7 @@
         border-radius: 0.4rem;
         white-space: nowrap;
 
-        /* fallback de couleur si aucune variante n’existe */
+        /* fallback de couleur si aucune variante n'existe */
         background-color: #f1f3f5;
         color: #495057;
     }
@@ -93,7 +93,7 @@
         <!-- Compteur -->
         <div class="col-12 col-md-2 col-lg-2">
             <div class="small text-muted ps-1">
-                ↓ {{ contacts.paginator.count }} contact{{ contacts.paginator.count|pluralize }}
+                « {{ contacts.paginator.count }} contact{{ contacts.paginator.count|pluralize }}
             </div>
         </div>
 
@@ -115,7 +115,7 @@
             <input type="text"
                    name="search"
                    class="form-control"
-                   placeholder="Recherche : email, objet, contenu, num_unique..."
+                   placeholder="Recherche : email, objet, contenu, nom, num_unique..."
                    value="{{ search }}">
         </div>
 
@@ -136,11 +136,11 @@
                 Statut
             </a>
             {% if order == 'statut__id' %}
-                <span class="sort-arrow">▲</span>
+                <span class="sort-arrow">&darr;</span>
             {% elif order == '-statut__id' %}
-                <span class="sort-arrow">▼</span>
+                <span class="sort-arrow">&uarr;</span>
             {% else %}
-                <span class="sort-arrow">▶</span>
+                <span class="sort-arrow">&harr;</span>
             {% endif %}
         </th>
         
@@ -152,11 +152,11 @@
                 Canal
             </a>
             {% if order == 'canal__libelle' %}
-                <span class="sort-arrow">▲</span>
+                <span class="sort-arrow">&darr;</span>
             {% elif order == '-canal__libelle' %}
-                <span class="sort-arrow">▼</span>
+                <span class="sort-arrow">&uarr;</span>
             {% else %}
-            <span class="sort-arrow">▶</span>
+                <span class="sort-arrow">&harr;</span>
             {% endif %}
         </th>
 
@@ -166,11 +166,11 @@
                 Date
             </a>
             {% if order == 'date' %}
-                <span class="sort-arrow">▲</span>
+                <span class="sort-arrow">&darr;</span>
             {% elif order == '-date' %}
-                <span class="sort-arrow">▼</span>
+                <span class="sort-arrow">&uarr;</span>
             {% else %}
-                <span class="sort-arrow">▶</span>
+                <span class="sort-arrow">&harr;</span>
             {% endif %}
         </th>
 
@@ -180,11 +180,11 @@
                 Email demandeur
             </a>
             {% if order == 'demandeur__email' %}
-                <span class="sort-arrow">▲</span>
+                <span class="sort-arrow">&darr;</span>
             {% elif order == '-demandeur__email' %}
-                <span class="sort-arrow">▼</span>
+                <span class="sort-arrow">&uarr;</span>
             {% else %}
-                <span class="sort-arrow">▶</span>
+                <span class="sort-arrow">&harr;</span>
             {% endif %}
         </th>
 
@@ -194,11 +194,13 @@
                 Num unique
             </a>
             {% if order == 'demandeur__num_unique' %}
-                <span class="sort-arrow">▲</span>
+                <span class="sort-arrow">&darr;</span>
             {% elif order == '-demandeur__num_unique' %}
-                <span class="sort-arrow">▼</span>
+                <span class="sort-arrow">&uarr;</span>
             {% endif %}
         </th>
+
+        <th>Nom</th>
 
         <!-- OBJET -->
         <th>Objet</th>
@@ -230,19 +232,34 @@
             <td class="text-center">{{ c.canal.libelle }}</td>
             <td class="text-center">{{ c.date|date:"d/m/Y" }}</td>
             <td>{{ c.demandeur.email }}</td>
-            <td>{{ c.demandeur.num_unique|default:"—" }}</td>
+            <td>{{ c.demandeur.num_unique|default:"&mdash;"|safe }}</td>
+            <td>{{ c.demandeur.nom|default:"&mdash;"|safe }}</td>
             <td>{{ c.objet|default:"(Sans objet)" }}</td>
             <td>
                 <div class="d-flex align-items-center" style="gap: 6px;">
                     <a href="{% url 'logement:email_create_step2' contact_id=c.id %}?return_url={{ request.get_full_path|urlencode }}"
-                        class="btn btn-sm btn-primary">
+                        class="btn btn-sm btn-primary"
+                        title="Modifier"
+                        aria-label="Modifier">
 
-                        Modifier
+                        <span aria-hidden="true">&#9998;</span>
+                        <span class="visually-hidden">Modifier</span>
                     </a>
 
 
 
 
+                    <form method="post"
+                          action="{% url 'logement:contact_move_to_default_domaine' domaine_id=c.domaine.id contact_id=c.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="return_url" value="{{ request.get_full_path }}">
+                        <button type="submit"
+                                class="btn btn-sm btn-warning"
+                                style="white-space: nowrap; font-size: 0.75rem;"
+                                onclick="return confirm('Confirmer le passage de ce contact au domaine 2 ?');">
+                            &rarr; <span class="small">Instruction</span>
+                        </button>
+                    </form>
                     <form method="post"
                           action="{% url 'logement:contact_delete' domaine_id=c.domaine.id contact_id=c.id %}">
                         {% csrf_token %}
@@ -252,8 +269,11 @@
                                     class="btn btn-danger"
                                     name="delete_action"
                                     value="delete_only"
+                                    title="Supprimer"
+                                    aria-label="Supprimer"
                                     onclick="return confirm('Confirmer la suppression de ce contact ?');">
-                                Supprimer
+                                <span aria-hidden="true">&#128465;</span>
+                                <span class="visually-hidden">Supprimer</span>
                             </button>
                             <button type="button"
                                     class="btn btn-danger dropdown-toggle dropdown-toggle-split"
@@ -276,8 +296,8 @@
                                             class="dropdown-item"
                                             name="delete_action"
                                             value="delete_and_blacklist_sender"
-                                            onclick="return confirm('Supprimer ce contact et blacklist l\\'expéditeur {{ c.demandeur.email|default:'(email indisponible)'|escapejs }} ?');">
-                                        Supprimer + blacklist expéditeur ({{ c.demandeur.email|default:"email indisponible" }})
+                                            onclick="return confirm('Supprimer ce contact et blacklist l\'exp&eacute;diteur {{ c.demandeur.email|default:'(email indisponible)'|escapejs }} ?');">
+                                        Supprimer + blacklist exp&eacute;diteur ({{ c.demandeur.email|default:"email indisponible" }})
                                     </button>
                                 </li>
                                 <li>
@@ -285,11 +305,11 @@
                                             class="dropdown-item text-danger"
                                             name="delete_action"
                                             value="delete_and_blacklist_domain"
-                                            onclick="return confirm('Supprimer ce contact et blacklist tout le domaine de l\\'expéditeur ? Cette action bloquera tous les expéditeurs de ce domaine.');">
-                                        Supprimer + blacklist domaine de l'expéditeur
+                                            onclick="return confirm('Supprimer ce contact et blacklist tout le domaine de l\'exp&eacute;diteur ? Cette action bloquera tous les exp&eacute;diteurs de ce domaine.');">
+                                        Supprimer + blacklist domaine de l\'exp&eacute;diteur
                                     </button>
                                 </li>
-                            </ul>
+                                </ul>
                         </div>
                     </form>
                 </div>
@@ -297,7 +317,7 @@
 
         </tr>
         {% empty %}
-        <tr><td colspan="8" class="text-center">Aucun contact trouvé.</td></tr>
+        <tr><td colspan="9" class="text-center">Aucun contact trouvé.</td></tr>
         {% endfor %}
     </tbody>
 </table>
@@ -333,9 +353,9 @@
 
 <div class="mt-4">
         {% if return_url %}
-        <a href="{{ return_url }}" class="btn btn-secondary">← Retour à l’accueil</a>
+                <a href="{{ return_url }}" class="btn btn-secondary">&larr; Retour &agrave; l&apos;accueil</a>
     {% else %}
-        <a href="{% url 'home' %}" class="btn btn-secondary">← Retour à l’accueil</a>
+                 <a href="{% url 'home' %}" class="btn btn-secondary">&larr; Retour &agrave; l&apos;accueil</a>
     {% endif %}
 
 
@@ -343,3 +363,8 @@
 
 
 {% endblock %}
+
+
+
+
+

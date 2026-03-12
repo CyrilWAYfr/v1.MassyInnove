@@ -46,6 +46,7 @@ urlpatterns = [
     path("<int:domaine_id>/contacts/", views.contact_list, name="contact_list"),
     path("contacts/", views.contact_list, name="contact_list"),
     path("<int:domaine_id>/contacts/<int:contact_id>/delete/", views.contact_delete, name="contact_delete"),
+    path("<int:domaine_id>/contacts/<int:contact_id>/deplacer-vers-domaine-2/", views.contact_move_to_default_domaine, name="contact_move_to_default_domaine"),
     
     # Gestion des demandeurs
     path("demandeurs/", views.demandeurs_list, name="demandeurs_list"),

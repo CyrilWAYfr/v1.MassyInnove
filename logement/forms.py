@@ -98,6 +98,17 @@ class EmailEntrantStep2Form(forms.Form):
     )
 
 
+    nom = forms.CharField(
+        label="Nom",
+        required=False,
+        max_length=30,
+        widget=forms.TextInput(attrs={
+            "class": "form-control form-control-sm",
+            "style": "width: 220px;"
+        })
+    )
+
+    
     thematiques = forms.ModelMultipleChoiceField(
         queryset=Thematique.objects.all(),
         widget=forms.CheckboxSelectMultiple,

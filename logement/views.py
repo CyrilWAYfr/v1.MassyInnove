@@ -1,4 +1,4 @@
-# --- IMPORTS --- PROD
+﻿# --- IMPORTS --- PROD
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Q
@@ -180,7 +180,7 @@ def home_vincent(request):
 
 
 # -----------------------------------------------
-# CONTACTS ENTRANTS – LISTE / RECHERCHE / TRI / SUPPRESSION
+# CONTACTS ENTRANTS â€“ LISTE / RECHERCHE / TRI / SUPPRESSION
 # -----------------------------------------------
 from .decorators import domaine_required
 from django.db.models import Q
@@ -194,6 +194,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import render
 from django.core.paginator import Paginator, EmptyPage
+from .models import Domaine
 
 from .models import StatutContact
 
@@ -215,6 +216,7 @@ def contact_list(request):
             | Q(objet__icontains=search)
             | Q(txtdemande__icontains=search)
             | Q(demandeur__num_unique__icontains=search)
+            | Q(demandeur__nom__icontains=search)
         )
 
     # --- Filtre statut (id)
@@ -246,7 +248,7 @@ def contact_list(request):
     return render(request, "logement/contact_list.html", {
         "contacts": contacts,
         "search": search,
-        "statut": statut,     # <-- NOUVEAU (pour garder la sélection)
+        "statut": statut,     # <-- NOUVEAU (pour garder la sÃ©lection)
         "statuts": statuts,   # <-- NOUVEAU (pour remplir le dropdown)
         "order": order,
         "return_url": return_url,
@@ -314,16 +316,41 @@ def contact_delete(request, domaine_id, contact_id):
             return redirect(return_url)
         return redirect("logement:contact_list")
 
-    messages.success(request, "Contact supprimé.")
+    messages.success(request, "Contact supprimÃ©.")
     if return_url:
         return redirect(return_url)
 
     return redirect("logement:contact_list")
 
 
+@require_POST
+@domaine_required
+def contact_move_to_default_domaine(request, domaine_id, contact_id):
+    contact = get_object_or_404(
+        ContactEntrant,
+        id=contact_id,
+        domaine=request.domaine
+    )
+
+    return_url = request.POST.get("return_url")
+    default_domaine = get_object_or_404(Domaine, id=2)
+
+    if contact.domaine_id == default_domaine.id:
+        messages.info(request, "Ce contact est déjà dans le domaine 2.")
+    else:
+        contact.domaine = default_domaine
+        contact.statut_id = 3
+        contact.save(update_fields=["domaine", "statut_id"])
+        messages.success(request, "Contact déplacé vers le domaine 2 et statut passé à 3.")
+
+    if return_url:
+        return redirect(return_url)
+    return redirect("logement:contact_list")
+
+
 
 # -----------------------------------------------
-# TRAITEMENT DES MAILS – ETAPE 1
+# TRAITEMENT DES MAILS â€“ ETAPE 1
 # -----------------------------------------------
 from datetime import datetime
 from django.utils import timezone
@@ -347,10 +374,10 @@ def email_create_step1(request, domaine_id, demandeur_id=None):
     return_url = request.GET.get("return_url") or request.POST.get("return_url")
 
     """
-    Étape 1 de la création d'un contact entrant.
-    Gère à la fois :
+    Ã‰tape 1 de la crÃ©ation d'un contact entrant.
+    GÃ¨re Ã  la fois :
     - GET vierge (mode 'initial')
-    - GET avec demandeur pré-rempli
+    - GET avec demandeur prÃ©-rempli
     - POST avec validation + erreurs
     """
 
@@ -361,11 +388,11 @@ def email_create_step1(request, domaine_id, demandeur_id=None):
         return email.strip().lower()
 
     # ----------------------------------------------------
-    # 1) GET — ouverture de la page
+    # 1) GET â€” ouverture de la page
     # ----------------------------------------------------
     if request.method == "GET":
 
-        # Cas 1 : demandeur pré-rempli depuis l'URL
+        # Cas 1 : demandeur prÃ©-rempli depuis l'URL
         if demandeur_id is not None:
             demandeur = get_object_or_404(Demandeur, id=demandeur_id)
 
@@ -390,7 +417,7 @@ def email_create_step1(request, domaine_id, demandeur_id=None):
             history = list(contacts)  # [] si aucun historique
 
         else:
-            # Cas 2 : formulaire vierge (aucune recherche effectuée)
+            # Cas 2 : formulaire vierge (aucune recherche effectuÃ©e)
             form = EmailEntrantStep1Form(initial={
                 "date": timezone.localdate(),
                 "statut": 1,
@@ -406,12 +433,12 @@ def email_create_step1(request, domaine_id, demandeur_id=None):
         })
 
     # ----------------------------------------------------
-    # 2) POST — validation du formulaire
+    # 2) POST â€” validation du formulaire
     # ----------------------------------------------------
     form = EmailEntrantStep1Form(request.POST)
 
     if not form.is_valid():
-        # Le formulaire a des erreurs → on tente quand même d'afficher l'historique si email saisi
+        # Le formulaire a des erreurs â†’ on tente quand mÃªme d'afficher l'historique si email saisi
 
         email_raw = normalize_email(request.POST.get("email"))
 
@@ -440,7 +467,7 @@ def email_create_step1(request, domaine_id, demandeur_id=None):
         })
 
     # ----------------------------------------------------
-    # 3) POST valide → création ou mise à jour des données
+    # 3) POST valide â†’ crÃ©ation ou mise Ã  jour des donnÃ©es
     # ----------------------------------------------------
     email = normalize_email(form.cleaned_data["email"])
     objet = form.cleaned_data["objet"]
@@ -455,10 +482,10 @@ def email_create_step1(request, domaine_id, demandeur_id=None):
     demandeur = Demandeur.objects.filter(email=email).first()
 
     if not demandeur:
-        # Création silencieuse d'un nouveau demandeur
+        # CrÃ©ation silencieuse d'un nouveau demandeur
         demandeur = Demandeur.objects.create(email=email)
 
-    # Création du contact entrant
+    # CrÃ©ation du contact entrant
     ce = ContactEntrant.objects.create(
         date=date_mail,
         canal=canal,
@@ -470,7 +497,7 @@ def email_create_step1(request, domaine_id, demandeur_id=None):
     )
 
     # ----------------------------------------------------------
-    # Appliquer les thématiques cochées par défaut
+    # Appliquer les thÃ©matiques cochÃ©es par dÃ©faut
     # UNIQUEMENT pour un NOUVEAU contact
     # ----------------------------------------------------------
     default_thematics = list(
@@ -551,7 +578,7 @@ def check_demandeur(request):
 
 
 # -----------------------------------------------
-# TRAITEMENT DES MAILS – ETAPE 2
+# TRAITEMENT DES MAILS â€“ ETAPE 2
 # -----------------------------------------------
 
 # Synchro formulaire / BDD
@@ -559,12 +586,13 @@ def check_demandeur(request):
 def sync_contact_from_step2_form(contact, form, request):
     """
     Synchronise les champs du formulaire step2 vers ContactEntrant
-    (hors champ 'reponse', géré séparément).
+    (hors champ 'reponse', gÃ©rÃ© sÃ©parÃ©ment).
     """
 
-    # --- Numéro unique (Demandeur) ---
+    # --- NumÃ©ro unique (Demandeur) ---
     numero_unique = form.cleaned_data.get("numero_unique")
     contact.demandeur.num_unique = numero_unique or None
+    contact.demandeur.nom = form.cleaned_data.get("nom") or None
     contact.demandeur.save()
 
     # --- Statut ---
@@ -573,7 +601,7 @@ def sync_contact_from_step2_form(contact, form, request):
     # --- Salutation ---
     contact.salutation = form.cleaned_data.get("salutation")
 
-    # --- Thématiques (hors form Django) ---
+    # --- ThÃ©matiques (hors form Django) ---
     selected_ids = request.POST.getlist("thematiques")
     contact.thematiques.set(selected_ids)
 
@@ -598,14 +626,14 @@ def email_create_step2(request, contact_id):
 
 
     if not user_has_domaine(request.user, contact.domaine):
-        return HttpResponseForbidden("Accès interdit à ce domaine")
+        return HttpResponseForbidden("AccÃ¨s interdit Ã  ce domaine")
 
     domaine = contact.domaine
     return_url = request.GET.get("return_url") or request.POST.get("return_url")
     
     
     # ------------------------------------------------------
-    # 🔥 POST : enregistrement du formulaire
+    # ðŸ”¥ POST : enregistrement du formulaire
     # ------------------------------------------------------
     if request.method == "POST":
         form = EmailEntrantStep2Form(request.POST)
@@ -619,7 +647,7 @@ def email_create_step2(request, contact_id):
             contact.save(update_fields=["evaluation_reponse"])
 
 
-            # --- Réponse (reste spécifique ici) ---
+            # --- RÃ©ponse (reste spÃ©cifique ici) ---
             contact.reponse = form.cleaned_data.get("reponse") or ""
             contact.save(update_fields=["reponse"])
 
@@ -634,10 +662,11 @@ def email_create_step2(request, contact_id):
 
     else:
         # ------------------------------------------------------
-        # 🔥 GET : valeurs initiales
+        # ðŸ”¥ GET : valeurs initiales
         # ------------------------------------------------------
         form = EmailEntrantStep2Form(initial={
             "numero_unique": contact.demandeur.num_unique,
+            "nom": contact.demandeur.nom,
             "reponse": contact.reponse,
             "statut": contact.statut_id,
             "salutation": contact.salutation_id,
@@ -645,7 +674,7 @@ def email_create_step2(request, contact_id):
         })
 
     # ------------------------------------------------------
-    # 🔥 Charger les groupes et thématiques
+    # ðŸ”¥ Charger les groupes et thÃ©matiques
     # ------------------------------------------------------
     if domaine:
         groupes = Groupe.objects.filter(domaine=domaine).order_by("ordre")
@@ -659,7 +688,7 @@ def email_create_step2(request, contact_id):
     has_multiple_groups = groupes.count() > 1
 
     # ------------------------------------------------------
-    # 🔥 Logique dépliage / repliage
+    # ðŸ”¥ Logique dÃ©pliage / repliage
     # ------------------------------------------------------
     selected_ids = list(contact.thematiques.values_list("id", flat=True))
     is_new_contact = not selected_ids
@@ -672,7 +701,7 @@ def email_create_step2(request, contact_id):
                 groups_to_expand.add(groupe.id)
 
     # ------------------------------------------------------
-    # 🔥 Rendu template
+    # ðŸ”¥ Rendu template
     # ------------------------------------------------------
     return render(request, "logement/email_step2.html", {
         "contact": contact,
@@ -709,7 +738,7 @@ from ChatBotEngine.models import AgentInstruction
 
 def extract_mistral_text(response):
     """
-    Extrait uniquement les chunks de type 'text' depuis la réponse Mistral.
+    Extrait uniquement les chunks de type 'text' depuis la rÃ©ponse Mistral.
     Compatible SDK mistralai 1.9.x
     """
     try:
@@ -766,13 +795,13 @@ def proposition_ia(request, ce, domaine):
 
     final_text = extract_mistral_text(response)
 
-    # 🔥 reconnexion MySQL
+    # ðŸ”¥ reconnexion MySQL
     connection.close()
 
     return final_text
 
 
-# Composition de la réponse globale : Salutations + Proposition IA + Signature
+# Composition de la rÃ©ponse globale : Salutations + Proposition IA + Signature
 
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect
@@ -793,7 +822,7 @@ from django.utils.formats import date_format
 def proposer_reponse(request, contact_id):
 
     ce = get_object_or_404(
-        ContactEntrant.objects.select_related("domaine"),
+        ContactEntrant.objects.select_related("domaine", "demandeur"),
         id=contact_id,
     )
 
@@ -801,16 +830,16 @@ def proposer_reponse(request, contact_id):
     return_url = request.POST.get("return_url") or request.GET.get("return_url")
 
 
-    # 🔐 Contrôle d’accès (droits OU domaine public)
+    # ðŸ” ContrÃ´le dâ€™accÃ¨s (droits OU domaine public)
     if not user_has_domaine(request.user, domaine):
-        return HttpResponseForbidden("Accès interdit à ce domaine")
+        return HttpResponseForbidden("AccÃ¨s interdit Ã  ce domaine")
 
     # -------------------------------
-    # Adhérence BDD
+    # AdhÃ©rence BDD
     # -------------------------------
     STATUT_BROUILLON_ID = 2
 
-    # 🔹 1. Valider le formulaire step2
+    # ðŸ”¹ 1. Valider le formulaire step2
     form = EmailEntrantStep2Form(request.POST)
     if not form.is_valid():
         messages.error(request, "Le formulaire contient des erreurs.")
@@ -822,13 +851,21 @@ def proposer_reponse(request, contact_id):
 
         return redirect("logement:email_create_step2", contact_id=contact_id)
 
-    # 🔹 2. Synchroniser l’état du formulaire
+    # ðŸ”¹ 2. Synchroniser lâ€™Ã©tat du formulaire
     sync_contact_from_step2_form(ce, form, request)
 
-    # 🔹 3. Cas sans agent IA
+    def _salutation_nom():
+        salutation = (ce.salutation.libelle if ce.salutation else "").strip().rstrip(",")
+        nom = (ce.demandeur.nom or "").strip() if ce.demandeur else ""
+        if nom:
+            base_salutation = salutation or "Bonjour"
+            return f"{base_salutation} {nom},"
+        return salutation if salutation else "Bonjour"
+
+    # ðŸ”¹ 3. Cas sans agent IA
     if not domaine.agent_id:
 
-        salutation = ce.salutation.libelle if ce.salutation else ""
+        salutation_avec_nom = _salutation_nom()
         intro = domaine.intro or ""
 
         thematiques = ce.thematiques.all()
@@ -844,8 +881,8 @@ def proposer_reponse(request, contact_id):
         signature = domaine.signature or ""
 
         blocs = []
-        if salutation:
-            blocs.append(salutation)
+        if salutation_avec_nom:
+            blocs.append(salutation_avec_nom)
         if intro:
             blocs.append(intro)
         if liste_thematiques:
@@ -866,25 +903,21 @@ def proposer_reponse(request, contact_id):
         return redirect("logement:email_create_step2", contact_id=contact_id)
 
 
-    # 🔹 4. Génération IA
+    # ðŸ”¹ 4. GÃ©nÃ©ration IA
     texte_ia = proposition_ia(request, ce, domaine)
 
-    # 🔹 5. Assemblage final
-    salutation = (
-        ce.salutation.libelle
-        if ce.salutation
-        else "Pas de salutation définie"
-    )
+    # ðŸ”¹ 5. Assemblage final
+    salutation_avec_nom = _salutation_nom()
 
     signature = domaine.signature or ""
 
-    blocs = [salutation, texte_ia]
+    blocs = [salutation_avec_nom, texte_ia]
     if signature:
         blocs.append(signature)
 
 
     # -------------------------------------------------
-    # Bloc "message initial" façon client mail
+    # Bloc "message initial" faÃ§on client mail
     # -------------------------------------------------
     if ce.txtdemande:
 
@@ -925,7 +958,7 @@ def proposer_reponse(request, contact_id):
 
 
 # -----------------------------------------------
-# GESTION DES DEMANDEURS – ETAPE 2
+# GESTION DES DEMANDEURS â€“ ETAPE 2
 # -----------------------------------------------
 
 from django.db.models import Count, Max
@@ -944,10 +977,9 @@ def demandeurs_list(request):
 
     contacts = get_contacts_for_user(request.user)
     return_url = request.GET.get("return_url")
-    search_num_unique = request.GET.get("num_unique", "").strip()
-    search_email = request.GET.get("email", "").strip()
+    search = request.GET.get("search", "").strip()
 
-    # Aucun contact accessible → aucun demandeur visible
+    # Aucun contact accessible = aucun demandeur visible
     if not contacts.exists():
         demandeurs = Demandeur.objects.none()
     else:
@@ -960,10 +992,12 @@ def demandeurs_list(request):
             )
             .distinct()
         )
-        if search_num_unique:
-            demandeurs = demandeurs.filter(num_unique__icontains=search_num_unique)
-        if search_email:
-            demandeurs = demandeurs.filter(email__icontains=search_email)
+        if search:
+            demandeurs = demandeurs.filter(
+                Q(num_unique__icontains=search)
+                | Q(email__icontains=search)
+                | Q(nom__icontains=search)
+            )
 
         demandeurs = demandeurs.order_by(
             "-dernier_contact",
@@ -978,11 +1012,8 @@ def demandeurs_list(request):
         "demandeurs": page_obj,
         "page_obj": page_obj,
         "return_url": return_url,
-        "search_num_unique": search_num_unique,
-        "search_email": search_email,
+        "search": search,
     })
-
-
 from django.shortcuts import render, get_object_or_404, redirect
 from django.forms import ModelForm
 from .models import Demandeur
@@ -1015,7 +1046,7 @@ from django.views.decorators.http import require_http_methods
 def demandeur_delete(request, demandeur_id):
     demandeur = get_object_or_404(Demandeur, id=demandeur_id)
 
-    # 🔑 récupération du return_url
+    # ðŸ”‘ rÃ©cupÃ©ration du return_url
     return_url = request.GET.get("return_url") or request.POST.get("return_url")
 
     if request.method == "POST":
@@ -1051,7 +1082,7 @@ def demandeur_detail(request, demandeur_id):
     for c in contacts:
         full_text = c.txtdemande
         truncated = len(full_text) > 20
-        short_text = full_text[:20] + "…" if truncated else full_text
+        short_text = full_text[:20] + "â€¦" if truncated else full_text
 
         history.append({
             "id": c.id,
@@ -1084,8 +1115,8 @@ from logement.models import ContactEntrant, Thematique
 
 def create_default_contact_entrant(*, demandeur, domaine):
     """
-    Crée un ContactEntrant 'fictif' mais techniquement standard,
-    avec les valeurs par défaut (non figées ici, facilement modifiables ensuite).
+    CrÃ©e un ContactEntrant 'fictif' mais techniquement standard,
+    avec les valeurs par dÃ©faut (non figÃ©es ici, facilement modifiables ensuite).
     """
     ce = ContactEntrant.objects.create(
         date=timezone.now(),
@@ -1097,7 +1128,7 @@ def create_default_contact_entrant(*, demandeur, domaine):
         domaine=domaine,
     )
 
-    # Thématiques cochées par défaut (même logique que step1)
+    # ThÃ©matiques cochÃ©es par dÃ©faut (mÃªme logique que step1)
     default_thematics = list(
         Thematique.objects.filter(
             cocher_par_defaut=True,
@@ -1126,7 +1157,7 @@ from .decorators import domaine_required
 from .models import Demandeur
 from .forms import DemandeurForm
 
-#Choix ou création d'un demandeur et création d'un contact entrant fictif, correspondant à une instruction, alternative à email_create_step1
+#Choix ou crÃ©ation d'un demandeur et crÃ©ation d'un contact entrant fictif, correspondant Ã  une instruction, alternative Ã  email_create_step1
 
 @domaine_required
 @require_http_methods(["GET", "POST"])
@@ -1161,7 +1192,7 @@ def demandeur_entry_point(request, domaine_id):
             return redirect("logement:email_create_step2", contact_id=ce.id)
 
 
-        # === Créer un nouveau demandeur ===
+        # === CrÃ©er un nouveau demandeur ===
         if action == "create_demandeur":
             create_form = DemandeurForm(request.POST)
 
@@ -1259,9 +1290,9 @@ def piece_jointe_contact_download(request, piece_id):
 
     contact = pj.contact_entrant
     if not user_has_domaine(request.user, contact.domaine):
-        return HttpResponse("Accès interdit à ce domaine", status=403)
+        return HttpResponse("AccÃ¨s interdit Ã  ce domaine", status=403)
 
-    # réponse binaire
+    # rÃ©ponse binaire
     resp = HttpResponse(pj.contenu, content_type=pj.content_type or "application/octet-stream")
     filename = pj.nom_original or f"piece_jointe_{pj.id}"
     resp["Content-Disposition"] = f'attachment; filename="{filename}"'
@@ -1322,5 +1353,8 @@ def blacklist_delete(request, domaine_id, entry_id):
             f"?return_url={urlquote(return_url)}"
         )
     return redirect("logement:blacklist_manage", domaine_id=domaine.id)
+
+
+
 
 

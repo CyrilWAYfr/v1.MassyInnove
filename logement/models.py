@@ -121,6 +121,7 @@ class Thematique(models.Model):
 
 
 class Demandeur(models.Model):
+    nom = models.CharField(max_length=30, blank=True, null=True)
     email = models.EmailField(unique=True, blank=True, null=True)
     telephone = models.CharField(max_length=50, unique=True, blank=True, null=True)
 

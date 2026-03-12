@@ -1,0 +1,1 @@
+Tous les fichiers sont encodés en UTF-8 et doivent le rester. L'application est prévue pour être utilisée en Français. La base de données stocke également les données en UTF8.
