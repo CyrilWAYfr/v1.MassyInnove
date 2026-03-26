@@ -17,8 +17,8 @@ urlpatterns = [
     # Apps internes
     path("AssistantCR/", include("AssistantCR.urls", namespace="assistantcr")),
     path("ChatBotEngine/", include("ChatBotEngine.urls", namespace="chatbotengine")),
-    path("Logement/", include("logement.urls", namespace="logement")),
-    path("ingest/", include("logement.api.urls")),
+    #path("Logement/", include("logement.urls", namespace="logement")),
+    #path("ingest/", include("logement.api.urls")),
     path("core/", include("core.urls")),
     path("", include("core.ai_audit.urls", namespace="ai_audit")),
 
